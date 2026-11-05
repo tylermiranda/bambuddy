@@ -10497,6 +10497,12 @@ async def auth_middleware(request, call_next):
         if pattern in path:
             return await call_next(request)
 
+    # Print Share Links guest status (#3461). Only the ``…/public`` suffix is
+    # middleware-public — create / list / revoke stay behind JWT. Broader
+    # ``/print-shares/`` substring matching would also open those owner routes.
+    if "/print-shares/" in path and path.rstrip("/").endswith("/public"):
+        return await call_next(request)
+
     # Check if auth is enabled. Fail CLOSED on any exception during the
     # probe — GHSA-6mf4-q26m-47pv: the previous fail-open path here let
     # an attacker who could force a DB exception (e.g. file-descriptor
