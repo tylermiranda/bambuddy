@@ -3644,7 +3644,7 @@ export default {
     sharePrint: 'Share this print',
     confirmTitle: 'Share this print?',
     confirmMessage:
-      'Create a guest link for the live camera and progress on {{name}}. Configure the options below — the URL is copied when the link is created.',
+      'Guest link for live camera and progress on {{name}}. The URL is copied when you create it.',
     confirmButton: 'Create & copy link',
     creating: 'Creating link…',
     readyTitle: 'Share link ready',
@@ -3657,11 +3657,14 @@ export default {
     fieldProjectUrl: 'Project / model link',
     fieldProjectUrlHint:
       'Optional. MakerWorld, Printables, etc. Leave blank if there is no public project.',
-    fieldEndWithPrint: 'End the live stream when this print completes',
-    fieldExpiry: 'Link expiration',
-    fieldExpiryHint: 'Guest access ends at this time (or when you revoke the link).',
-    fieldExpiryHintEndPrint:
-      'Hard stop even if the print is still running. “Never” relies on print end / revoke.',
+    fieldEndsWhen: 'Share ends',
+    endMode: {
+      print: 'When this print finishes',
+      printHint: 'Recommended. Live video stops when the job completes, fails, or is cancelled.',
+      duration: 'After a set time',
+      revoke: 'Only when I revoke it',
+      revokeHint: 'Stays live after the print ends until you delete the share.',
+    },
     expiry: {
       '1h': '1 hour',
       '4h': '4 hours',
