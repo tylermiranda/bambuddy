@@ -2115,9 +2115,11 @@ function PrinterCard({
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { hasPermission, canModify } = useAuth();
+  const [showPrintShareConfirm, setShowPrintShareConfirm] = useState(false);
   const createPrintShareMutation = useMutation({
     mutationFn: () => api.createPrintShare({ printer_id: printer.id }),
     onSuccess: async (share) => {
+      setShowPrintShareConfirm(false);
       const url = share.url?.startsWith('http')
         ? share.url
         : `${window.location.origin}${share.path}`;
@@ -2125,6 +2127,7 @@ function PrinterCard({
         await navigator.clipboard.writeText(url);
         showToast(t('printShare.copied', 'Share link copied'), 'success');
       } catch {
+        // Clipboard may be blocked (insecure context / permission); surface the URL.
         showToast(url, 'success');
       }
     },
@@ -6687,7 +6690,7 @@ function PrinterCard({
                     disabled={!hasPermission('camera:view') || createPrintShareMutation.isPending}
                     title={t('printShare.sharePrint', 'Share this print')}
                     className={footerIconButtonClass}
-                    onClick={() => createPrintShareMutation.mutate()}
+                    onClick={() => setShowPrintShareConfirm(true)}
                   >
                     <Share2 className="w-[var(--pc-i4,1rem)] h-[var(--pc-i4,1rem)]" />
                   </Button>
@@ -7193,6 +7196,26 @@ function PrinterCard({
             setHaToggleConfirm(null);
           }}
           onCancel={() => setHaToggleConfirm(null)}
+        />
+      )}
+
+      {/* Print Share Links confirmation (#3461) — mint guest URL + copy to clipboard */}
+      {showPrintShareConfirm && (
+        <ConfirmModal
+          title={t('printShare.confirmTitle', 'Share this print?')}
+          message={t(
+            'printShare.confirmMessage',
+            'Create a guest link for the live camera and progress on {{name}}. Anyone with the link can watch until this print ends. The URL will be copied to your clipboard.',
+            { name: printer.name },
+          )}
+          confirmText={t('printShare.confirmButton', 'Create & copy link')}
+          variant="default"
+          isLoading={createPrintShareMutation.isPending}
+          loadingText={t('printShare.creating', 'Creating link…')}
+          onConfirm={() => createPrintShareMutation.mutate()}
+          onCancel={() => {
+            if (!createPrintShareMutation.isPending) setShowPrintShareConfirm(false);
+          }}
         />
       )}
 

@@ -3642,6 +3642,11 @@ export default {
   printShare: {
     title: 'Print Share',
     sharePrint: 'Share this print',
+    confirmTitle: 'Share this print?',
+    confirmMessage:
+      'Create a guest link for the live camera and progress on {{name}}. Anyone with the link can watch until this print ends. The URL will be copied to your clipboard.',
+    confirmButton: 'Create & copy link',
+    creating: 'Creating link…',
     copied: 'Share link copied',
     failed: 'Could not create share link',
     invalid: 'Invalid share link',
