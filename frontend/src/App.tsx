@@ -17,6 +17,7 @@ import { LibraryTrashPage } from './pages/LibraryTrashPage';
 import { CameraPage } from './pages/CameraPage';
 import { CamWallPage } from './pages/CamWallPage';
 import { StreamOverlayPage } from './pages/StreamOverlayPage';
+import { PrintSharePage } from './pages/PrintSharePage';
 import { ExternalLinkPage } from './pages/ExternalLinkPage';
 import { GroupEditPage } from './pages/GroupEditPage';
 import InventoryPage from './pages/InventoryPage';
@@ -190,6 +191,9 @@ function App() {
 
                 {/* Stream overlay page - standalone for OBS/streaming embeds, no auth required */}
                 <Route path="/overlay/:printerId" element={<StreamOverlayPage />} />
+
+                {/* Print Share Links (#3461) — guest page for the duration of one print */}
+                <Route path="/share/:publicId" element={<PrintSharePage />} />
 
                 {/* Cam Wall on its own URL (#2531). Outside ProtectedRoute because a
                     ?token= kiosk has no session to protect; the page itself sends a

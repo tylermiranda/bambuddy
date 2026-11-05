@@ -903,15 +903,25 @@ async def verify_websocket_token(token: str) -> str | None:
         return row.username or ""
 
 
-async def verify_camera_stream_token(token: str) -> bool:
+async def verify_camera_stream_token(token: str, printer_id: int | None = None) -> bool:
     """Verify a camera stream token is valid (reusable — does not consume it).
 
     Tries the ephemeral 60-minute token first (the common, browser-bound case)
     and falls through to long-lived tokens (#1108) for HA / kiosk integrations
     that paste a token once and expect it to keep working for days.
+
+    Print Share Links (#3461) use a ``bbps_`` public id as the token. Those are
+    bound to one printer and one active job — when ``printer_id`` is provided
+    the share must match that printer.
     """
     now = datetime.now(timezone.utc)
     async with async_session() as db:
+        from backend.app.services.print_shares import is_print_share_token, verify_active_share_token
+
+        if is_print_share_token(token):
+            share = await verify_active_share_token(db, token, printer_id=printer_id)
+            return share is not None
+
         result = await db.execute(
             select(AuthEphemeralToken).where(
                 AuthEphemeralToken.token == token,
@@ -948,7 +958,7 @@ async def verify_camwall_token(token: str) -> bool:
         return record is not None
 
 
-async def verify_overlay_token(token: str) -> bool:
+async def verify_overlay_token(token: str, printer_id: int | None = None) -> bool:
     """Verify a streaming-overlay token (#2613). Reusable — does not consume it.
 
     Like :func:`verify_camwall_token`, only the matching long-lived scope passes:
@@ -957,8 +967,17 @@ async def verify_overlay_token(token: str) -> bool:
     a bare ``camera_stream`` token (handed out for video alone). The 60-minute
     ephemeral token belongs to a logged-in browser, which reaches the same data
     through the ordinary printers API and has no need of this endpoint.
+
+    Print Share Links (#3461) also pass here: a guest share is allowed to see
+    the same single-printer status the overlay draws, scoped to that printer.
     """
     async with async_session() as db:
+        from backend.app.services.print_shares import is_print_share_token, verify_active_share_token
+
+        if is_print_share_token(token):
+            share = await verify_active_share_token(db, token, printer_id=printer_id)
+            return share is not None
+
         from backend.app.services.long_lived_tokens import verify_token as verify_long_lived
 
         record = await verify_long_lived(db, token, scope="overlay")
@@ -2200,11 +2219,11 @@ def require_camera_stream_token_if_auth_enabled():
     tell one user's rows from another's (#3025).
     """
 
-    async def checker(token: str | None = None) -> None:
+    async def checker(printer_id: int, token: str | None = None) -> None:
         async with async_session() as db:
             if not await is_auth_enabled(db):
                 return  # Auth disabled, allow access
-        if not token or not await verify_camera_stream_token(token):
+        if not token or not await verify_camera_stream_token(token, printer_id=printer_id):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Valid camera stream token required. Obtain one from POST /api/v1/printers/camera/stream-token",
@@ -2248,11 +2267,11 @@ def require_overlay_token_if_auth_enabled():
     has no JWT to carry.
     """
 
-    async def checker(token: str | None = None) -> None:
+    async def checker(printer_id: int, token: str | None = None) -> None:
         async with async_session() as db:
             if not await is_auth_enabled(db):
                 return  # Auth disabled, allow access
-        if not token or not await verify_overlay_token(token):
+        if not token or not await verify_overlay_token(token, printer_id=printer_id):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Valid overlay token required. Create one under Settings > API Keys with the 'Streaming Overlay' scope.",

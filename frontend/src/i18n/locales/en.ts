@@ -3638,6 +3638,25 @@ export default {
     },
   },
 
+  // Print Share Links (#3461)
+  printShare: {
+    title: 'Print Share',
+    sharePrint: 'Share this print',
+    copied: 'Share link copied',
+    failed: 'Could not create share link',
+    invalid: 'Invalid share link',
+    notFound: 'This share link was not found or has been revoked.',
+    loadError: 'Could not load this share link.',
+    camera: 'Print camera',
+    endedFailed: 'Print failed',
+    endedCancelled: 'Print cancelled',
+    endedRevoked: 'Share revoked',
+    endedCompleted: 'Print finished',
+    endedHint: 'Live video for this share has ended.',
+    untitled: 'Print',
+    projectLink: 'View project / model',
+  },
+
   // Stream overlay
   streamOverlay: {
     title: 'Stream Overlay',

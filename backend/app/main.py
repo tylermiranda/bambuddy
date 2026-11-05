@@ -60,6 +60,7 @@ from backend.app.api.routes import (
     pipeline_runs,
     print_log,
     print_queue,
+    print_shares,
     printer_sensor_history,
     printers,
     projects,
@@ -8504,6 +8505,30 @@ async def on_print_complete(printer_id: int, data: dict):
         )
         log_timing("Timelapse scan scheduled")
 
+    # End any Print Share Links for this printer (#3461). Map print status to
+    # a share end_reason; unknown statuses still close the guest link.
+    try:
+        raw_status = (data.get("status") or "completed").lower()
+        if raw_status in ("failed", "failure"):
+            share_reason = "failed"
+        elif raw_status in ("cancelled", "canceled", "stopped"):
+            share_reason = "cancelled"
+        else:
+            share_reason = "completed"
+        from backend.app.services.print_shares import end_active_shares_for_printer
+
+        async with async_session() as share_db:
+            ended = await end_active_shares_for_printer(share_db, printer_id, reason=share_reason)
+            if ended:
+                logger.info(
+                    "[CALLBACK] Ended %s print share(s) for printer %s reason=%s",
+                    ended,
+                    printer_id,
+                    share_reason,
+                )
+    except Exception as e:
+        logger.warning("Failed to end print shares for printer %s: %s", printer_id, e)
+
     logger.info("[CALLBACK] on_print_complete finished for printer %s, archive %s", printer_id, archive_id)
 
 
@@ -10655,6 +10680,7 @@ app.include_router(announcements.router, prefix=app_settings.api_prefix)
 app.include_router(maintenance.router, prefix=app_settings.api_prefix)
 app.include_router(camera.router, prefix=app_settings.api_prefix)
 app.include_router(camwall.router, prefix=app_settings.api_prefix)
+app.include_router(print_shares.router, prefix=app_settings.api_prefix)
 app.include_router(external_links.router, prefix=app_settings.api_prefix)
 app.include_router(projects.router, prefix=app_settings.api_prefix)
 app.include_router(library.router, prefix=app_settings.api_prefix)

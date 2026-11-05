@@ -157,6 +157,7 @@ import {
   PictureInPicture2,
   ThumbsUp,
   ThumbsDown,
+  Share2,
 } from 'lucide-react';
 import { ConfirmOutcomeDialog } from '../components/ConfirmOutcomeDialog';
 
@@ -2114,6 +2115,22 @@ function PrinterCard({
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { hasPermission, canModify } = useAuth();
+  const createPrintShareMutation = useMutation({
+    mutationFn: () => api.createPrintShare({ printer_id: printer.id }),
+    onSuccess: async (share) => {
+      const url = share.url?.startsWith('http')
+        ? share.url
+        : `${window.location.origin}${share.path}`;
+      try {
+        await navigator.clipboard.writeText(url);
+        showToast(t('printShare.copied', 'Share link copied'), 'success');
+      } catch {
+        showToast(url, 'success');
+      }
+    },
+    onError: (error: Error) =>
+      showToast(error.message || t('printShare.failed', 'Could not create share link'), 'error'),
+  });
   const [showMenu, setShowMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteArchives, setDeleteArchives] = useState(true);
@@ -6662,6 +6679,19 @@ function PrinterCard({
                     Replaces the old Settings > General > Camera switch, which
                     made choosing between an overlay and a window a trip to
                     another page for something you decide per camera. */}
+                {/* Share current print (#3461) — guest link ends when the print ends. */}
+                {(status?.state === 'RUNNING' || status?.state === 'PAUSE') && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={!hasPermission('camera:view') || createPrintShareMutation.isPending}
+                    title={t('printShare.sharePrint', 'Share this print')}
+                    className={footerIconButtonClass}
+                    onClick={() => createPrintShareMutation.mutate()}
+                  >
+                    <Share2 className="w-[var(--pc-i4,1rem)] h-[var(--pc-i4,1rem)]" />
+                  </Button>
+                )}
                 <div className="flex items-center flex-shrink-0">
                   <Button
                     variant="secondary"

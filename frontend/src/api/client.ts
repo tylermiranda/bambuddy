@@ -412,6 +412,49 @@ export interface OverlayStatus {
   time_format: 'system' | '12h' | '24h';
 }
 
+/** Owner-facing Print Share Link (#3461). */
+export interface PrintShareResponse {
+  id: number;
+  public_id: string;
+  printer_id: number;
+  archive_id: number | null;
+  job_key: string;
+  title: string | null;
+  project_url: string | null;
+  status: 'active' | 'ended' | string;
+  end_reason: string | null;
+  created_by_id: number | null;
+  created_at: string | null;
+  ended_at: string | null;
+  path: string;
+  url: string;
+}
+
+/** Guest payload for `/share/{id}` (#3461). */
+export interface PrintSharePublicResponse {
+  public_id: string;
+  status: 'active' | 'ended' | string;
+  end_reason: string | null;
+  title: string | null;
+  project_url: string | null;
+  printer_id: number;
+  printer_name: string | null;
+  model: string | null;
+  camera_rotation: number;
+  time_format: 'system' | '12h' | '24h' | string;
+  ended_at: string | null;
+  connected: boolean;
+  state: string | null;
+  current_print: string | null;
+  gcode_file: string | null;
+  progress: number | null;
+  remaining_time: number | null;
+  layer_num: number | null;
+  total_layers: number | null;
+  stg_cur_name: string | null;
+  temperatures: Record<string, number>;
+}
+
 // Printer types
 export interface Printer {
   id: number;
@@ -7174,6 +7217,20 @@ export const api = {
         ? `/printers/${printerId}/overlay-status?token=${encodeURIComponent(token)}`
         : `/printers/${printerId}/overlay-status`,
     ),
+  // Print Share Links (#3461) — guest URL for the duration of one print.
+  createPrintShare: (data: { printer_id: number; title?: string; project_url?: string }) =>
+    request<PrintShareResponse>('/print-shares/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  listPrintShares: (includeEnded = true) =>
+    request<PrintShareResponse[]>(`/print-shares/?include_ended=${includeEnded}`),
+  revokePrintShare: (publicId: string) =>
+    request<PrintShareResponse>(`/print-shares/${encodeURIComponent(publicId)}`, {
+      method: 'DELETE',
+    }),
+  getPrintSharePublic: (publicId: string) =>
+    request<PrintSharePublicResponse>(`/print-shares/${encodeURIComponent(publicId)}/public`),
   getCameraStreamUrl: (printerId: number, fps = 10) =>
     withStreamToken(`${API_BASE}/printers/${printerId}/camera/stream?fps=${fps}`),
   getCameraSnapshotUrl: (printerId: number) =>
