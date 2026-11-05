@@ -115,6 +115,8 @@ class TestCreateAndEndShare:
             job_key="a.gcode",
             title="T",
             project_url=None,
+            end_with_print=True,
+            expires_at=None,
             status="active",
             end_reason=None,
             created_by_id=1,
@@ -124,3 +126,22 @@ class TestCreateAndEndShare:
         payload = share_service.share_to_owner_dict(share, external_url="https://bambu.example")
         assert payload["path"] == f"/share/{share.public_id}"
         assert payload["url"] == f"https://bambu.example/share/{share.public_id}"
+        assert payload["end_with_print"] is True
+
+    async def test_end_active_respects_end_with_print_flag(self, db_session, printer_factory):
+        printer = await printer_factory()
+        with patch.object(share_service.printer_manager, "get_status", return_value=_running_state()):
+            stay = await share_service.create_print_share(
+                db_session,
+                printer_id=printer.id,
+                created_by_id=None,
+                end_with_print=False,
+                expires_in_hours=24,
+            )
+        ended = await share_service.end_active_shares_for_printer(
+            db_session, printer.id, reason="completed", only_end_with_print=True
+        )
+        assert ended == 0
+        refreshed = await share_service.get_share_by_public_id(db_session, stay.public_id)
+        assert refreshed is not None
+        assert refreshed.status == "active"

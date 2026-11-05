@@ -165,10 +165,12 @@ import { ConfirmOutcomeDialog } from '../components/ConfirmOutcomeDialog';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { api, discoveryApi, firmwareApi, withMediaToken, ApiError } from '../api/client';
 import { formatDateOnly, formatDateTime, formatETA, formatDuration, formatDurationFromHours, parseUTCDate } from '../utils/date';
-import type { Printer, PrinterCreate, PrinterStatus, AMSUnit, DiscoveredPrinter, FirmwareUpdateInfo, FirmwareUploadStatus, LinkedSpoolInfo, SpoolAssignment, HMSError, InventorySpool, SmartPlug, PrinterDiagnosticResult } from '../api/client';
+import type { Printer, PrinterCreate, PrinterStatus, AMSUnit, DiscoveredPrinter, FirmwareUpdateInfo, FirmwareUploadStatus, LinkedSpoolInfo, SpoolAssignment, HMSError, InventorySpool, SmartPlug, PrinterDiagnosticResult, PrintShareResponse } from '../api/client';
 import { Card, CardContent } from '../components/Card';
 import { Button } from '../components/Button';
 import { ConfirmModal } from '../components/ConfirmModal';
+import { PrintShareModal, type PrintShareFormValues } from '../components/PrintShareModal';
+import { copyTextToClipboard } from '../utils/clipboard';
 import { BulkPrinterToolbar, type PrinterState } from '../components/BulkPrinterToolbar';
 import { FileManagerModal } from '../components/FileManagerModal';
 import { EmbeddedCameraViewer } from '../components/EmbeddedCameraViewer';
@@ -2116,20 +2118,28 @@ function PrinterCard({
   const { showToast } = useToast();
   const { hasPermission, canModify } = useAuth();
   const [showPrintShareConfirm, setShowPrintShareConfirm] = useState(false);
+  const [createdPrintShare, setCreatedPrintShare] = useState<PrintShareResponse | null>(null);
   const createPrintShareMutation = useMutation({
-    mutationFn: () => api.createPrintShare({ printer_id: printer.id }),
+    mutationFn: (values: PrintShareFormValues) =>
+      api.createPrintShare({
+        printer_id: printer.id,
+        title: values.title || undefined,
+        project_url: values.project_url || undefined,
+        end_with_print: values.end_with_print,
+        expires_in_hours: values.expires_in_hours,
+      }),
     onSuccess: async (share) => {
-      setShowPrintShareConfirm(false);
+      setCreatedPrintShare(share);
       const url = share.url?.startsWith('http')
         ? share.url
         : `${window.location.origin}${share.path}`;
-      try {
-        await navigator.clipboard.writeText(url);
-        showToast(t('printShare.copied', 'Share link copied'), 'success');
-      } catch {
-        // Clipboard may be blocked (insecure context / permission); surface the URL.
-        showToast(url, 'success');
-      }
+      const ok = await copyTextToClipboard(url);
+      showToast(
+        ok
+          ? t('printShare.copied', 'Share link copied')
+          : t('printShare.copyFailed', 'Automatic copy failed — select the URL and copy it manually.'),
+        ok ? 'success' : 'error',
+      );
     },
     onError: (error: Error) =>
       showToast(error.message || t('printShare.failed', 'Could not create share link'), 'error'),
@@ -6690,7 +6700,10 @@ function PrinterCard({
                     disabled={!hasPermission('camera:view') || createPrintShareMutation.isPending}
                     title={t('printShare.sharePrint', 'Share this print')}
                     className={footerIconButtonClass}
-                    onClick={() => setShowPrintShareConfirm(true)}
+                    onClick={() => {
+                      setCreatedPrintShare(null);
+                      setShowPrintShareConfirm(true);
+                    }}
                   >
                     <Share2 className="w-[var(--pc-i4,1rem)] h-[var(--pc-i4,1rem)]" />
                   </Button>
@@ -7199,22 +7212,23 @@ function PrinterCard({
         />
       )}
 
-      {/* Print Share Links confirmation (#3461) — mint guest URL + copy to clipboard */}
+      {/* Print Share Links (#3461) — OE-style options + copy-ready URL */}
       {showPrintShareConfirm && (
-        <ConfirmModal
-          title={t('printShare.confirmTitle', 'Share this print?')}
-          message={t(
-            'printShare.confirmMessage',
-            'Create a guest link for the live camera and progress on {{name}}. Anyone with the link can watch until this print ends. The URL will be copied to your clipboard.',
-            { name: printer.name },
-          )}
-          confirmText={t('printShare.confirmButton', 'Create & copy link')}
-          variant="default"
-          isLoading={createPrintShareMutation.isPending}
-          loadingText={t('printShare.creating', 'Creating link…')}
-          onConfirm={() => createPrintShareMutation.mutate()}
-          onCancel={() => {
-            if (!createPrintShareMutation.isPending) setShowPrintShareConfirm(false);
+        <PrintShareModal
+          printerName={printer.name}
+          defaultTitle={
+            (status?.current_print || status?.gcode_file || '').toString().split('/').pop() ||
+            printer.name
+          }
+          defaultProjectUrl={null}
+          isSubmitting={createPrintShareMutation.isPending}
+          createdShare={createdPrintShare}
+          onSubmit={(values) => createPrintShareMutation.mutate(values)}
+          onClose={() => {
+            if (!createPrintShareMutation.isPending) {
+              setShowPrintShareConfirm(false);
+              setCreatedPrintShare(null);
+            }
           }}
         />
       )}

@@ -5204,6 +5204,20 @@ async def run_migrations(conn):
     # Nullable: existing rows have none and keep being shown as before.
     await _safe_execute(conn, "ALTER TABLE slot_preset_mappings ADD COLUMN tray_info_idx VARCHAR(32)")
 
+    # Migration: Print Share Links OE-style options (#3461) — end-with-print
+    # toggle + optional hard expiry on existing installs (create_all covers fresh).
+    await _safe_execute(
+        conn, "ALTER TABLE print_shares ADD COLUMN end_with_print BOOLEAN DEFAULT TRUE"
+    )
+    await _safe_execute(conn, "ALTER TABLE print_shares ADD COLUMN expires_at DATETIME")
+    async with conn.begin_nested():
+        await conn.execute(
+            text(
+                "UPDATE print_shares SET end_with_print = :on WHERE end_with_print IS NULL"
+            ),
+            {"on": True},
+        )
+
 
 async def _migrate_confirm_prompt_body_template(conn) -> None:
     """Replace the one-tap verdict URLs in the outcome prompt's body (#1898).

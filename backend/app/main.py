@@ -8518,7 +8518,14 @@ async def on_print_complete(printer_id: int, data: dict):
         from backend.app.services.print_shares import end_active_shares_for_printer
 
         async with async_session() as share_db:
-            ended = await end_active_shares_for_printer(share_db, printer_id, reason=share_reason)
+            # Only shares that opted into end-with-print (OE default). Shares
+            # with end_with_print=False stay until expiry / revoke.
+            ended = await end_active_shares_for_printer(
+                share_db,
+                printer_id,
+                reason=share_reason,
+                only_end_with_print=True,
+            )
             if ended:
                 logger.info(
                     "[CALLBACK] Ended %s print share(s) for printer %s reason=%s",

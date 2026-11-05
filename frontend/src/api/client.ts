@@ -421,6 +421,8 @@ export interface PrintShareResponse {
   job_key: string;
   title: string | null;
   project_url: string | null;
+  end_with_print: boolean;
+  expires_at: string | null;
   status: 'active' | 'ended' | string;
   end_reason: string | null;
   created_by_id: number | null;
@@ -428,6 +430,14 @@ export interface PrintShareResponse {
   ended_at: string | null;
   path: string;
   url: string;
+}
+
+export interface PrintShareCreate {
+  printer_id: number;
+  title?: string;
+  project_url?: string;
+  end_with_print?: boolean;
+  expires_in_hours?: number | null;
 }
 
 /** Guest payload for `/share/{id}` (#3461). */
@@ -7218,7 +7228,7 @@ export const api = {
         : `/printers/${printerId}/overlay-status`,
     ),
   // Print Share Links (#3461) — guest URL for the duration of one print.
-  createPrintShare: (data: { printer_id: number; title?: string; project_url?: string }) =>
+  createPrintShare: (data: PrintShareCreate) =>
     request<PrintShareResponse>('/print-shares/', {
       method: 'POST',
       body: JSON.stringify(data),

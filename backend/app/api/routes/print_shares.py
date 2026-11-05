@@ -36,6 +36,9 @@ class PrintShareCreate(BaseModel):
     printer_id: int
     title: str | None = Field(None, max_length=200)
     project_url: str | None = Field(None, max_length=500)
+    end_with_print: bool = True
+    # Hours until hard expiry; omit / null = never (OE Live Link "Never").
+    expires_in_hours: int | None = Field(None, ge=1, le=17520)
 
     @field_validator("project_url")
     @classmethod
@@ -78,6 +81,8 @@ async def create_share(
             created_by_id=user.id if user else None,
             title=body.title,
             project_url=body.project_url,
+            end_with_print=body.end_with_print,
+            expires_in_hours=body.expires_in_hours,
         )
     except ValueError as exc:
         raise HTTPException(status.HTTP_409_CONFLICT, detail=str(exc)) from exc
@@ -133,11 +138,11 @@ async def get_public_share(public_id: str, db: AsyncSession = Depends(get_db)):
     if share is None:
         raise HTTPException(404, "Share not found")
 
-    # Re-check liveness for active shares (may end the row).
+    # Re-check liveness for active shares (may end the row on expiry / job end).
     if share.status == "active":
         live = await share_service.verify_active_share_token(db, public_id, printer_id=share.printer_id)
         if live is None:
-            share = await share_service.get_share_by_public_id(db, public_id)
+            share = await share_service.get_share_by_public_id(db, public_id) or share
 
     result = await db.execute(select(Printer).where(Printer.id == share.printer_id))
     printer = result.scalar_one_or_none()

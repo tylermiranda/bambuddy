@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.app.core.database import Base
@@ -47,9 +47,15 @@ class PrintShare(Base):
     # MakerWorld / Printables / etc. Snapshot at create so the guest page keeps
     # a stable outbound link even if the archive is edited later.
     project_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # When True (default), ``on_print_complete`` ends the share. When False the
+    # link stays live until ``expires_at`` or an owner revoke — OE Live Link
+    # "End Stream When The Current Print Completes" analogue.
+    end_with_print: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    # Optional hard expiry. Checked on guest verify / public status.
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     # active | ended
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="active", index=True)
-    # completed | failed | cancelled | revoked | superseded
+    # completed | failed | cancelled | revoked | superseded | expired
     end_reason: Mapped[str | None] = mapped_column(String(32), nullable=True)
     created_by_id: Mapped[int | None] = mapped_column(
         Integer,
