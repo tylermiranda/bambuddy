@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, VideoOff, WifiOff } from 'lucide-react';
-import { getAuthToken, withStreamToken } from '../api/client';
+import { AlertTriangle, Thermometer, VideoOff, WifiOff } from 'lucide-react';
+import { getAuthToken, withStreamToken, type SharedAmsTray } from '../api/client';
 import { formatDuration } from '../utils/date';
 import { useStreamImgRef } from '../hooks/useStreamImgRef';
 import { useCameraViewerId } from '../hooks/useCameraViewerId';
@@ -9,6 +9,12 @@ import { isSideways, useSidewaysBox } from '../hooks/useSidewaysBox';
 
 export type CameraTileMode = 'live' | 'snapshot' | 'paused';
 export type CameraTileStatusMode = 'off' | 'compact' | 'full';
+
+function formatTrayHex(raw: string | null | undefined): string {
+  if (!raw) return '#71717a';
+  const clean = raw.replace(/^#/, '').slice(0, 6);
+  return clean.length === 6 ? `#${clean}` : '#71717a';
+}
 
 interface CameraTileProps {
   printerId: number;
@@ -28,6 +34,9 @@ interface CameraTileProps {
   totalLayers?: number | null;
   printName?: string | null;
   hmsErrorCount?: number;
+  awaitingPlateClear?: boolean;
+  temperatures?: Record<string, number | undefined>;
+  amsTrays?: SharedAmsTray[];
 }
 
 // Tiles render lighter than EmbeddedCameraViewer's full window: lower fps,
@@ -85,6 +94,9 @@ export function CameraTile({
   totalLayers = null,
   printName = null,
   hmsErrorCount = 0,
+  awaitingPlateClear = false,
+  temperatures,
+  amsTrays,
 }: CameraTileProps) {
   const { t } = useTranslation();
   const [bust, setBust] = useState(0);
@@ -260,11 +272,14 @@ export function CameraTile({
         : undefined;
 
   const bucket = classifyState(printerState, hmsErrorCount);
-  // Hide chip for idle to keep cold walls clean; always show when something
-  // is happening (printing/paused/finished/error).
-  const showChip = connected && statusMode !== 'off' && bucket !== 'idle';
   const isPrintingOrPaused = bucket === 'printing' || bucket === 'paused';
+  const needsPlateClear = Boolean(awaitingPlateClear) && !isPrintingOrPaused;
+  // Hide chip for idle to keep cold walls clean; always show when something
+  // is happening (printing/paused/finished/error/plate clear).
+  const showChip = connected && statusMode !== 'off' && (bucket !== 'idle' || needsPlateClear);
   const showInfoStrip = connected && statusMode === 'full' && isPrintingOrPaused;
+  const showCompactProgress = connected && statusMode === 'compact' && isPrintingOrPaused;
+  const showTelemetry = connected && statusMode !== 'off';
   const fileLabel = printName ?? null;
   const progressPct = progress != null ? Math.round(progress) : null;
   const hasLayers = layerNum != null && totalLayers != null && totalLayers > 0;
@@ -317,17 +332,26 @@ export function CameraTile({
 
       {/* Status chip (top-left) */}
       {showChip && (
-        <span
-          className={`absolute left-2 top-2 flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${BUCKET_CHIP_CLASS[bucket]}`}
-        >
-          {hmsErrorCount > 0 && (
-            <AlertTriangle
-              className="h-3 w-3"
-              aria-hidden="true"
-            />
+        <div className="absolute left-2 top-2 flex flex-wrap items-center gap-1">
+          {bucket !== 'idle' && (
+            <span
+              className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${BUCKET_CHIP_CLASS[bucket]}`}
+            >
+              {hmsErrorCount > 0 && (
+                <AlertTriangle
+                  className="h-3 w-3"
+                  aria-hidden="true"
+                />
+              )}
+              <span>{t(`printers.status.${bucket}`)}</span>
+            </span>
           )}
-          <span>{t(`printers.status.${bucket}`)}</span>
-        </span>
+          {needsPlateClear && (
+            <span className="rounded bg-amber-500/85 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-black">
+              {t('printers.plateStatus.awaitingClear', 'Clear Plate')}
+            </span>
+          )}
+        </div>
       )}
 
       {/* Mode indicator (top-right) */}
@@ -347,18 +371,18 @@ export function CameraTile({
             : t('printers.camWall.off')}
       </span>
 
-      {/* Bottom overlay: name + (when full) print info */}
-      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/55 to-transparent px-2 pb-1.5 pt-3 text-white">
-        {showInfoStrip && (
-          <div className="mb-0.5 space-y-0.5 text-[11px] leading-tight text-white/90">
-            {fileLabel && (
-              <div className="truncate" title={fileLabel}>
+      {/* Bottom overlay: name + print info + telemetry */}
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent px-2.5 pb-2 pt-4 text-white">
+        {(showInfoStrip || showCompactProgress) && (
+          <div className="mb-1 space-y-1 text-[11px] leading-tight text-white/90">
+            {showInfoStrip && fileLabel && (
+              <div className="truncate font-medium" title={fileLabel}>
                 {fileLabel}
               </div>
             )}
             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-bambu-gray">
               {progressPct != null && (
-                <span className="font-semibold text-white">{progressPct}%</span>
+                <span className="font-semibold text-bambu-green">{progressPct}%</span>
               )}
               {hasLayers && (
                 <span>
@@ -376,9 +400,47 @@ export function CameraTile({
                 </span>
               )}
             </div>
+            {progressPct != null && (
+              <div className="h-1 w-full overflow-hidden rounded-full bg-white/20">
+                <div
+                  className="h-full rounded-full bg-bambu-green transition-all duration-500"
+                  style={{ width: `${Math.min(100, Math.max(0, progressPct))}%` }}
+                />
+              </div>
+            )}
           </div>
         )}
-        <span className="block truncate text-xs font-medium">{printerName}</span>
+        <div className="flex items-center justify-between gap-2">
+          <span className="block truncate text-xs font-medium">{printerName}</span>
+          {showTelemetry && (
+            <div className="flex shrink-0 items-center gap-2 text-[10px] text-white/80">
+              {temperatures && (temperatures.nozzle != null || temperatures.bed != null) && (
+                <span className="inline-flex items-center gap-1 rounded bg-black/50 px-1.5 py-0.5">
+                  <Thermometer className="h-2.5 w-2.5 text-orange-400" />
+                  {temperatures.nozzle != null ? `${Math.round(temperatures.nozzle)}°` : '—'}
+                  {temperatures.bed != null ? ` / ${Math.round(temperatures.bed)}°` : ''}
+                  {temperatures.chamber != null ? ` / ${Math.round(temperatures.chamber)}°` : ''}
+                </span>
+              )}
+              {amsTrays && amsTrays.length > 0 && (
+                <div className="inline-flex items-center gap-1 rounded bg-black/50 px-1.5 py-0.5">
+                  {amsTrays.slice(0, 6).map((tray) => (
+                    <span
+                      key={`${tray.ams_id}-${tray.slot_id}`}
+                      className="h-2.5 w-2.5 rounded-full border border-white/40"
+                      style={{ backgroundColor: formatTrayHex(tray.color) }}
+                      title={
+                        tray.remain != null
+                          ? `${tray.type} (${tray.remain}%)`
+                          : tray.type
+                      }
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </>
   );

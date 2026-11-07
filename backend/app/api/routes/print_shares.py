@@ -152,12 +152,14 @@ async def get_public_share(public_id: str, db: AsyncSession = Depends(get_db)):
         "public_id": share.public_id,
         "status": share.status,
         "end_reason": share.end_reason,
+        "end_with_print": bool(share.end_with_print),
         "title": share.title,
         "project_url": share.project_url,
         "printer_id": share.printer_id,
         "printer_name": printer.name if printer else None,
         "model": printer.model if printer else None,
         "camera_rotation": (printer.camera_rotation or 0) if printer else 0,
+        "awaiting_plate_clear": bool(getattr(printer, "awaiting_plate_clear", False)) if printer else False,
         "time_format": time_format,
         "ended_at": share.ended_at.isoformat() if share.ended_at else None,
         # Live print fields — only while active
@@ -171,11 +173,40 @@ async def get_public_share(public_id: str, db: AsyncSession = Depends(get_db)):
         "total_layers": None,
         "stg_cur_name": None,
         "temperatures": {},
+        "ams_trays": [],
     }
 
     if share.status == "active" and printer is not None:
         state = printer_manager.get_status(share.printer_id)
         if state is not None:
+            ams_trays = []
+            for unit in (getattr(state, "ams", None) or []):
+                for t in (getattr(unit, "tray", None) or []):
+                    t_type = getattr(t, "tray_type", None)
+                    if t_type:
+                        remain = getattr(t, "remain", None)
+                        ams_trays.append(
+                            {
+                                "ams_id": getattr(unit, "id", 0),
+                                "slot_id": getattr(t, "id", 0),
+                                "type": t_type,
+                                "color": getattr(t, "tray_color", None),
+                                "remain": remain if isinstance(remain, (int, float)) and remain >= 0 else None,
+                            }
+                        )
+            for ext in (getattr(state, "vt_tray", None) or []):
+                t_type = getattr(ext, "tray_type", None)
+                if t_type:
+                    remain = getattr(ext, "remain", None)
+                    ams_trays.append(
+                        {
+                            "ams_id": 255,
+                            "slot_id": getattr(ext, "id", 254),
+                            "type": t_type,
+                            "color": getattr(ext, "tray_color", None),
+                            "remain": remain if isinstance(remain, (int, float)) and remain >= 0 else None,
+                        }
+                    )
             payload.update(
                 {
                     "connected": state.connected,
@@ -188,6 +219,7 @@ async def get_public_share(public_id: str, db: AsyncSession = Depends(get_db)):
                     "total_layers": state.total_layers,
                     "stg_cur_name": get_derived_status_name(state, printer.model),
                     "temperatures": display_temperatures(state.temperatures, printer.model),
+                    "ams_trays": ams_trays,
                 }
             )
 

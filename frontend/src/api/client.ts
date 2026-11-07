@@ -377,16 +377,28 @@ export interface ConnectAuthorizeInfo {
 // One row of the token-authenticated Cam Wall feed (#2531). Deliberately
 // smaller than PrinterStatus: no serial, no IP, no print filename — a kiosk URL
 // is not a secret, so the payload behind it must not be either.
+export interface SharedAmsTray {
+  ams_id: number;
+  slot_id: number;
+  type: string;
+  color: string | null;
+  remain: number | null;
+}
+
 export interface CamWallPrinter {
   id: number;
   name: string;
+  model?: string | null;
   camera_rotation: number;
+  awaiting_plate_clear?: boolean;
   connected: boolean;
   state: string | null;
   progress: number | null;
   remaining_time: number | null;
   layer_num: number | null;
   total_layers: number | null;
+  temperatures?: Record<string, number>;
+  ams_trays?: SharedAmsTray[];
   hms_errors: HMSError[];
 }
 
@@ -448,12 +460,14 @@ export interface PrintSharePublicResponse {
   public_id: string;
   status: 'active' | 'ended' | string;
   end_reason: string | null;
+  end_with_print?: boolean;
   title: string | null;
   project_url: string | null;
   printer_id: number;
   printer_name: string | null;
   model: string | null;
   camera_rotation: number;
+  awaiting_plate_clear?: boolean;
   time_format: 'system' | '12h' | '24h' | string;
   ended_at: string | null;
   connected: boolean;
@@ -466,6 +480,7 @@ export interface PrintSharePublicResponse {
   total_layers: number | null;
   stg_cur_name: string | null;
   temperatures: Record<string, number>;
+  ams_trays?: SharedAmsTray[];
 }
 
 // Printer types

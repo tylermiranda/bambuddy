@@ -29,6 +29,7 @@ type Props = {
   printerName: string;
   defaultTitle: string;
   defaultProjectUrl?: string | null;
+  isPrinting?: boolean;
   isSubmitting: boolean;
   onSubmit: (values: PrintShareFormValues) => void;
   onClose: () => void;
@@ -54,6 +55,7 @@ export function PrintShareModal({
   printerName,
   defaultTitle,
   defaultProjectUrl,
+  isPrinting = true,
   isSubmitting,
   onSubmit,
   onClose,
@@ -62,7 +64,7 @@ export function PrintShareModal({
   const { t } = useTranslation();
   const [title, setTitle] = useState(defaultTitle);
   const [projectUrl, setProjectUrl] = useState(defaultProjectUrl?.trim() || '');
-  const [endMode, setEndMode] = useState<EndMode>('print');
+  const [endMode, setEndMode] = useState<EndMode>(() => (isPrinting ? 'print' : 'revoke'));
   const [durationHours, setDurationHours] = useState(24);
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
@@ -102,7 +104,7 @@ export function PrintShareModal({
   };
 
   const handleCreate = () => {
-    const end_with_print = endMode === 'print';
+    const end_with_print = isPrinting && endMode === 'print';
     const expires_in_hours = endMode === 'duration' ? durationHours : null;
     onSubmit({
       title: title.trim(),
@@ -124,7 +126,9 @@ export function PrintShareModal({
               <h2 className="text-lg font-semibold text-white">
                 {createdShare
                   ? t('printShare.readyTitle', 'Share link ready')
-                  : t('printShare.confirmTitle', 'Share this print?')}
+                  : isPrinting
+                    ? t('printShare.confirmTitle', 'Share this print?')
+                    : t('printShare.confirmPrinterTitle', 'Share printer status?')}
               </h2>
               <p className="text-sm text-zinc-400 mt-1">
                 {createdShare
@@ -225,23 +229,29 @@ export function PrintShareModal({
                     {t('printShare.fieldEndsWhen', 'Share ends')}
                   </legend>
 
-                  <label className={radioClass}>
+                  <label className={`${radioClass} ${!isPrinting ? 'opacity-50 cursor-not-allowed' : ''}`}>
                     <input
                       type="radio"
                       name="print-share-end"
                       className="mt-1"
+                      disabled={!isPrinting}
                       checked={endMode === 'print'}
-                      onChange={() => setEndMode('print')}
+                      onChange={() => isPrinting && setEndMode('print')}
                     />
                     <span>
                       <span className="block text-white">
                         {t('printShare.endMode.print', 'When this print finishes')}
                       </span>
                       <span className="block text-xs text-zinc-500">
-                        {t(
-                          'printShare.endMode.printHint',
-                          'Recommended. Live video stops when the job completes, fails, or is cancelled.',
-                        )}
+                        {isPrinting
+                          ? t(
+                              'printShare.endMode.printHint',
+                              'Recommended. Live video stops when the job completes, fails, or is cancelled.',
+                            )
+                          : t(
+                              'printShare.endMode.noActivePrintHint',
+                              'Unavailable while printer is idle — choose a duration or permanent status link below.',
+                            )}
                       </span>
                     </span>
                   </label>
