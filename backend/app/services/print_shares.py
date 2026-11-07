@@ -138,24 +138,30 @@ async def create_print_share(
     state = printer_manager.get_status(printer_id)
     if state is None or not state.connected:
         raise ValueError("Printer is not connected")
-    if state.state not in _ACTIVE_PRINT_STATES:
+    is_active_print = state.state in _ACTIVE_PRINT_STATES
+    if end_with_print and not is_active_print:
         raise ValueError("No active print to share")
 
-    job_key = _job_key_from_state(state)
-    if not job_key:
+    job_key = _job_key_from_state(state) if is_active_print else ""
+    if end_with_print and not job_key:
         raise ValueError("No active print to share")
 
-    archive = await _archive_for_share(
-        db,
-        printer_id=printer_id,
-        job_key=job_key,
-        current_print=getattr(state, "current_print", None),
+    archive = (
+        await _archive_for_share(
+            db,
+            printer_id=printer_id,
+            job_key=job_key,
+            current_print=getattr(state, "current_print", None),
+        )
+        if is_active_print
+        else None
     )
     resolved_title = (
         (title or "").strip()
         or (archive.print_name if archive else None)
-        or getattr(state, "current_print", None)
+        or (getattr(state, "current_print", None) if is_active_print else None)
         or job_key
+        or None
     )
     resolved_project = (project_url or "").strip() or _default_project_url(archive)
     if not resolved_project:

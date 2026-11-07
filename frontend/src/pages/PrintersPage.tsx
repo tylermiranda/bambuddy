@@ -2710,6 +2710,8 @@ const { hasPermission, canModify, authEnabled, isAdmin } = useAuth();
     select: (archives) => archives.find((a) => a.printer_id === printer.id),
   });
   const isPrintingOrPaused = status?.state === 'RUNNING' || status?.state === 'PAUSE';
+  const isDeveloperModeOff = status?.developer_mode === false;
+  const canControlPrinter = hasPermission('printers:control') && !isDeveloperModeOff;
   const needsPlateClear = requirePlateClear && status?.awaiting_plate_clear === true;
   // Post-print outcome confirmation on the card (#1898): while the plate-clear
   // gate is up and the just-finished print asked for a verdict, offer
@@ -3624,7 +3626,7 @@ const { hasPermission, canModify, authEnabled, isAdmin } = useAuth();
   // used to check — so someone holding that but neither of these had the file
   // uploaded and then rejected by the queue, leaving it stranded. The Print
   // button below has always checked this pair.
-  const canDrop = hasPermission('library:upload') && hasPermission('queue:create');
+  const canDrop = !isDeveloperModeOff && hasPermission('library:upload') && hasPermission('queue:create');
 
   // Drives the wording alone. Shared with the PrintModal so the card's promise
   // and the modal's own "will start later" toast cannot disagree.
@@ -3759,6 +3761,7 @@ const { hasPermission, canModify, authEnabled, isAdmin } = useAuth();
     isRefreshing?: boolean;
     includeRfid?: boolean;
   }) => {
+    if (isDeveloperModeOff) return null;
     const printerBusy = status?.state === 'RUNNING';
 
     return (
@@ -4530,35 +4533,37 @@ const { hasPermission, canModify, authEnabled, isAdmin } = useAuth();
                   // what rebuilds the list, so the print could never get it back.
                   // Exactly one object is the real nothing-to-skip case.
                   const objectCount = status.printable_objects_count ?? 0;
-                  const canSkipObjects = isActivePrint && objectCount !== 1 && hasPermission('printers:control');
+                  const canSkipObjects = isActivePrint && objectCount !== 1 && canControlPrinter;
 
                   return (
                     <div className="p-2 bg-bambu-dark rounded-[10px] relative overflow-hidden">
-                      <button
-                        onClick={() => setShowSkipObjectsModal(true)}
-                        disabled={!canSkipObjects}
-                        className={`absolute top-2 right-2 p-1.5 rounded transition-colors z-10 ${
-                          canSkipObjects
-                            ? 'text-bambu-gray hover:text-white hover:bg-white/10'
-                            : 'text-bambu-gray/30 cursor-not-allowed'
-                        }`}
-                        title={
-                          !hasPermission('printers:control')
-                            ? t('printers.permission.noControl')
-                            : !isActivePrint
-                              ? t('printers.skipObjects.onlyWhilePrinting')
-                              : objectCount === 1
-                                ? t('printers.skipObjects.requiresMultiple')
-                                : t('printers.skipObjects.tooltip')
-                        }
-                      >
-                        <SkipObjectsIcon className="w-[var(--pc-i4,1rem)] h-[var(--pc-i4,1rem)]" />
-                        {objectsData && objectsData.skipped_count > 0 && (
-                          <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 flex items-center justify-center text-[length:var(--pc-t10,10px)] font-bold bg-red-500 text-white rounded-full">
-                            {objectsData.skipped_count}
-                          </span>
-                        )}
-                      </button>
+                      {!isDeveloperModeOff && (
+                        <button
+                          onClick={() => setShowSkipObjectsModal(true)}
+                          disabled={!canSkipObjects}
+                          className={`absolute top-2 right-2 p-1.5 rounded transition-colors z-10 ${
+                            canSkipObjects
+                              ? 'text-bambu-gray hover:text-white hover:bg-white/10'
+                              : 'text-bambu-gray/30 cursor-not-allowed'
+                          }`}
+                          title={
+                            !hasPermission('printers:control')
+                              ? t('printers.permission.noControl')
+                              : !isActivePrint
+                                ? t('printers.skipObjects.onlyWhilePrinting')
+                                : objectCount === 1
+                                  ? t('printers.skipObjects.requiresMultiple')
+                                  : t('printers.skipObjects.tooltip')
+                          }
+                        >
+                          <SkipObjectsIcon className="w-[var(--pc-i4,1rem)] h-[var(--pc-i4,1rem)]" />
+                          {objectsData && objectsData.skipped_count > 0 && (
+                            <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 flex items-center justify-center text-[length:var(--pc-t10,10px)] font-bold bg-red-500 text-white rounded-full">
+                              {objectsData.skipped_count}
+                            </span>
+                          )}
+                        </button>
+                      )}
                       <div className="flex items-stretch gap-2">
                         <CoverImage
                           url={coverUrl}
@@ -4684,8 +4689,12 @@ const { hasPermission, canModify, authEnabled, isAdmin } = useAuth();
               const mountedHotend = trayLayout.rack && singleNozzleSlot?.id === 0 && typeof singleNozzleSlot.addr_id === 'number'
                 ? singleNozzleSlot.addr_id + 1
                 : null;
-              const canUseStatusControls = status.connected && hasPermission('printers:control');
-              const statusControlTitle = canUseStatusControls ? undefined : t('printers.permission.noControl');
+              const canUseStatusControls = status.connected && canControlPrinter;
+              const statusControlTitle = canUseStatusControls
+                ? undefined
+                : isDeveloperModeOff
+                  ? t('printers.developerModeOff', 'Read-only (Developer Mode is off)')
+                  : t('printers.permission.noControl');
               const statusControlClass = `relative text-center px-2 py-1.5 bg-bambu-dark rounded-lg flex-1 flex flex-col justify-center items-center transition-colors ${
                 canUseStatusControls ? 'cursor-pointer hover:bg-bambu-dark-tertiary' : 'cursor-default opacity-80'
               }`;
@@ -5022,6 +5031,23 @@ const { hasPermission, canModify, authEnabled, isAdmin } = useAuth();
                         </div>
                       );
                     })}
+                    {isDeveloperModeOff && isPrintingOrPaused && status.speed_level != null && (
+                      <div
+                        className="px-2 py-1.5 bg-bambu-dark rounded-lg flex-1 min-w-0 flex items-center justify-center gap-1 opacity-80"
+                        title={t('printers.speed.title')}
+                      >
+                        <Gauge className="w-[var(--pc-i3,0.75rem)] h-[var(--pc-i3,0.75rem)] shrink-0 text-amber-400" />
+                        <span className="text-[length:var(--pc-t10,10px)] leading-none text-white truncate">
+                          {status.speed_level === 1
+                            ? t('printers.speed.silent')
+                            : status.speed_level === 3
+                              ? t('printers.speed.sport')
+                              : status.speed_level === 4
+                                ? t('printers.speed.ludicrous')
+                                : t('printers.speed.standard')}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </>
               );
@@ -5030,7 +5056,7 @@ const { hasPermission, canModify, authEnabled, isAdmin } = useAuth();
             {viewMode === 'expanded' && showClearPlateButton && expandedClearPlateButton}
 
             {/* Controls */}
-            {viewMode === 'expanded' && (() => {
+            {viewMode === 'expanded' && !isDeveloperModeOff && (() => {
               // Determine print state for control buttons
               const isRunning = status.state === 'RUNNING';
               const isPaused = status.state === 'PAUSE';
@@ -5599,7 +5625,7 @@ const { hasPermission, canModify, authEnabled, isAdmin } = useAuth();
                                   {/* Drying button — only for AMS 2 Pro (n3f) and AMS-HT (n3s).
                                       Screen-only models (P1 series) keep the control but can't
                                       be commanded: it stays disabled and says why (#2533). */}
-                                  {(status.supports_drying || status.drying_screen_only) && (ams.module_type === 'n3f' || ams.module_type === 'n3s' || isAms3hUnit(ams)) && hasPermission('printers:control') && (
+                                  {(status.supports_drying || status.drying_screen_only) && (ams.module_type === 'n3f' || ams.module_type === 'n3s' || isAms3hUnit(ams)) && canControlPrinter && (
                                     <button
                                       disabled={status.drying_screen_only || !!(ams.dry_sf_reason?.length && ams.dry_time === 0)}
                                       onClick={(e) => {
@@ -5974,7 +6000,7 @@ const { hasPermission, canModify, authEnabled, isAdmin } = useAuth();
                                           };
                                         })()}
                                         configureSlot={{
-                                          enabled: hasPermission('printers:control'),
+                                          enabled: canControlPrinter,
                                           onConfigure: () => setConfigureSlotModal({
                                             amsId: ams.id,
                                             trayId: slotIdx,
@@ -6001,7 +6027,7 @@ const { hasPermission, canModify, authEnabled, isAdmin } = useAuth();
                                           isRefreshing,
                                         })}
                                         configureSlot={{
-                                          enabled: hasPermission('printers:control'),
+                                          enabled: canControlPrinter,
                                           onConfigure: () => setConfigureSlotModal({
                                             amsId: ams.id,
                                             trayId: slotIdx,
@@ -6226,7 +6252,7 @@ const { hasPermission, canModify, authEnabled, isAdmin } = useAuth();
                                 ) : null}
                               </div>
                               {/* Drying button for HT AMS */}
-                              {(status.supports_drying || status.drying_screen_only) && (ams.module_type === 'n3f' || ams.module_type === 'n3s') && hasPermission('printers:control') && (
+                              {(status.supports_drying || status.drying_screen_only) && (ams.module_type === 'n3f' || ams.module_type === 'n3s') && canControlPrinter && (
                                 <div className="relative ml-auto">
                                   <button
                                     disabled={status.drying_screen_only}
@@ -6391,7 +6417,7 @@ const { hasPermission, canModify, authEnabled, isAdmin } = useAuth();
                                       };
                                     })()}
                                     configureSlot={{
-                                      enabled: hasPermission('printers:control'),
+                                      enabled: canControlPrinter,
                                       onConfigure: () => setConfigureSlotModal({
                                         amsId: ams.id,
                                         trayId: htSlotId,
@@ -6419,7 +6445,7 @@ const { hasPermission, canModify, authEnabled, isAdmin } = useAuth();
                                       isRefreshing: isHtRefreshing,
                                     })}
                                     configureSlot={{
-                                      enabled: hasPermission('printers:control'),
+                                      enabled: canControlPrinter,
                                       onConfigure: () => setConfigureSlotModal({
                                         amsId: ams.id,
                                         trayId: htSlotId,
@@ -6707,7 +6733,7 @@ const { hasPermission, canModify, authEnabled, isAdmin } = useAuth();
                                         };
                                       })()}
                                       configureSlot={{
-                                        enabled: hasPermission('printers:control'),
+                                        enabled: canControlPrinter,
                                         onConfigure: () => setConfigureSlotModal({
                                           amsId: 255,
                                           trayId: slotTrayId,
@@ -6730,7 +6756,7 @@ const { hasPermission, canModify, authEnabled, isAdmin } = useAuth();
                                       assigned={pending ?? undefined}
                                       actions={extActions}
                                       configureSlot={{
-                                        enabled: hasPermission('printers:control'),
+                                        enabled: canControlPrinter,
                                         onConfigure: () => setConfigureSlotModal({
                                           amsId: 255,
                                           trayId: slotTrayId,
@@ -6895,8 +6921,8 @@ const { hasPermission, canModify, authEnabled, isAdmin } = useAuth();
                     Replaces the old Settings > General > Camera switch, which
                     made choosing between an overlay and a window a trip to
                     another page for something you decide per camera. */}
-                {/* Share current print (#3461) — guest link ends when the print ends. */}
-                {(status?.state === 'RUNNING' || status?.state === 'PAUSE') && (
+                {/* Share current print or printer status (#3461) — permanent link when idle. */}
+                {status?.connected && (
                   <Button
                     variant="secondary"
                     size="sm"
@@ -6971,13 +6997,15 @@ const { hasPermission, canModify, authEnabled, isAdmin } = useAuth();
                 <Button
                   size="sm"
                   onClick={() => setShowUploadForPrint(true)}
-                  disabled={!hasPermission('library:upload') || !hasPermission('queue:create')}
+                  disabled={isDeveloperModeOff || !hasPermission('library:upload') || !hasPermission('queue:create')}
                   title={
-                    !hasPermission('library:upload')
-                      ? t('fileManager.noPermissionUpload')
-                      : !hasPermission('queue:create')
-                        ? t('fileManager.noPermissionAddToQueue')
-                        : t('common.print')
+                    isDeveloperModeOff
+                      ? t('printers.developerModeOff', 'Read-only (Developer Mode is off)')
+                      : !hasPermission('library:upload')
+                        ? t('fileManager.noPermissionUpload')
+                        : !hasPermission('queue:create')
+                          ? t('fileManager.noPermissionAddToQueue')
+                          : t('common.print')
                   }
                   className={`${footerActionButtonClass} !bg-bambu-green hover:!bg-bambu-green/80 !text-white`}
                 >
@@ -7437,6 +7465,7 @@ const { hasPermission, canModify, authEnabled, isAdmin } = useAuth();
             printer.name
           }
           defaultProjectUrl={null}
+          isPrinting={status?.state === 'RUNNING' || status?.state === 'PAUSE'}
           isSubmitting={createPrintShareMutation.isPending}
           createdShare={createdPrintShare}
           onSubmit={(values) => createPrintShareMutation.mutate(values)}
@@ -7532,7 +7561,7 @@ const { hasPermission, canModify, authEnabled, isAdmin } = useAuth();
           amsUnits={status.ams ?? undefined}
           amsExtruderMap={status.ams_extruder_map}
           isDualNozzle={printer.nozzle_count === 2 || status?.temperatures?.nozzle_2 !== undefined}
-          canToggle={hasPermission('printers:control')}
+          canToggle={canControlPrinter}
           pending={setAmsBackupMutation.isPending}
           onToggle={(next) => setAmsBackupMutation.mutate(next)}
           onClose={() => setAmsBackupModalOpen(false)}

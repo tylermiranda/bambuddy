@@ -7,7 +7,7 @@ import { CameraTile, type CameraTileMode, type CameraTileStatusMode } from './Ca
 import { CameraTileControls } from './CameraTileControls';
 import type { CamWallControlsMode } from './camWallControls';
 import { filterKnownHMSErrors } from './HMSErrorModal';
-import { api, type PrinterStatus } from '../api/client';
+import { api, type PrinterStatus, type SharedAmsTray } from '../api/client';
 import type { TimeFormat } from '../utils/date';
 
 // The wall only ever reads these three fields off a printer, so it asks for no
@@ -33,9 +33,45 @@ export interface CameraWallStatus {
   subtask_name?: string | null;
   gcode_file?: string | null;
   hms_errors?: PrinterStatus['hms_errors'];
-  // Not in the kiosk feed: a kiosk tile shows neither (#3479).
-  temperatures?: PrinterStatus['temperatures'];
   chamber_light?: boolean;
+  awaiting_plate_clear?: boolean;
+  temperatures?: {
+    nozzle?: number;
+    nozzle_2?: number;
+    bed?: number;
+    chamber?: number;
+  };
+  ams_trays?: SharedAmsTray[];
+}
+
+function extractAmsTrays(status?: PrinterStatus): SharedAmsTray[] {
+  if (!status) return [];
+  const trays: SharedAmsTray[] = [];
+  for (const unit of status.ams ?? []) {
+    for (const t of unit.tray ?? []) {
+      if (t.tray_type || t.tray_color) {
+        trays.push({
+          ams_id: unit.id,
+          id: t.id,
+          tray_type: t.tray_type ?? null,
+          tray_sub_brands: t.tray_sub_brands ?? null,
+          tray_color: t.tray_color ?? null,
+          remain: t.remain ?? null,
+        });
+      }
+    }
+  }
+  if (status.vt_tray && (status.vt_tray.tray_type || status.vt_tray.tray_color)) {
+    trays.push({
+      ams_id: -1,
+      id: status.vt_tray.id ?? 254,
+      tray_type: status.vt_tray.tray_type ?? null,
+      tray_sub_brands: status.vt_tray.tray_sub_brands ?? null,
+      tray_color: status.vt_tray.tray_color ?? null,
+      remain: status.vt_tray.remain ?? null,
+    });
+  }
+  return trays;
 }
 
 interface CameraWallProps {
@@ -112,7 +148,15 @@ export function CameraWall({
   const fetchedStatuses = useMemo(() => {
     const map = new Map<number, CameraWallStatus | undefined>();
     ownQueries.forEach((p, i) => {
-      map.set(p.id, statusQueries[i]?.data);
+      const data = statusQueries[i]?.data;
+      if (data) {
+        map.set(p.id, {
+          ...data,
+          ams_trays: extractAmsTrays(data),
+        });
+      } else {
+        map.set(p.id, undefined);
+      }
     });
     return map;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -362,8 +406,10 @@ export function CameraWall({
                 hmsErrorCount={
                   filterKnownHMSErrors(statusByPrinter.get(p.id)?.hms_errors ?? []).length
                 }
-                temperatures={status?.temperatures ?? null}
                 timeFormat={timeFormat}
+                awaitingPlateClear={statusByPrinter.get(p.id)?.awaiting_plate_clear ?? false}
+                temperatures={statusByPrinter.get(p.id)?.temperatures ?? status?.temperatures ?? null}
+                amsTrays={statusByPrinter.get(p.id)?.ams_trays}
                 onClick={onTileClick ? () => onTileClick(p.id, p.name) : undefined}
               />
               {/* Beside the tile, not in it: the tile is a button. Shown on
