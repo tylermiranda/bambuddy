@@ -190,6 +190,7 @@ _BOOL_SETTING_KEYS = frozenset(
         "include_beta_updates",
         "announcements_enabled",
         "announcements_all_users",
+        "hide_developer_mode_warning",
         "ftp_retry_enabled",
         "mqtt_enabled",
         "mqtt_use_tls",
@@ -692,6 +693,10 @@ _UI_FLAG_FIELDS: tuple[str, ...] = (
     # update check ran even where it had been switched off.
     "currency",
     "check_updates",
+    # Layout banner for printers without Developer LAN mode. Same shell path
+    # as check_updates: any signed-in user sees the banner, so the hide toggle
+    # must not require SETTINGS_READ.
+    "hide_developer_mode_warning",
     # Read by the print dialog, queue, file manager, inventory and SpoolBuddy
     # pages, which users without SETTINGS_READ open too: the 403 dropped them
     # all to their defaults (with billing on, the print dialog hid the cost

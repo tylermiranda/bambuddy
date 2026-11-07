@@ -651,6 +651,34 @@ describe('Layout', () => {
       expect(document.body.textContent).not.toContain('Developer LAN mode is not enabled on');
     });
 
+    it('hides warning banner when hide_developer_mode_warning is enabled', async () => {
+      server.use(
+        http.get('/api/v1/printers/developer-mode-warnings', () => {
+          return HttpResponse.json([
+            { printer_id: 1, name: 'X1 Carbon' },
+          ]);
+        }),
+        http.get('/api/v1/settings/ui-flags', () => {
+          return HttpResponse.json({
+            check_updates: false,
+            billing_enabled: false,
+            user_notifications_enabled: true,
+            currency: 'EUR',
+            hide_developer_mode_warning: true,
+          });
+        })
+      );
+
+      render(<Layout />);
+
+      await waitFor(() => {
+        const sidebar = document.querySelector('aside');
+        expect(sidebar).toBeInTheDocument();
+      });
+
+      expect(document.body.textContent).not.toContain('Developer LAN mode is not enabled on');
+    });
+
     it('shows how to enable link in warning banner', async () => {
       server.use(
         http.get('/api/v1/printers/developer-mode-warnings', () => {

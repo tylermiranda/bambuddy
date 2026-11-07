@@ -2372,6 +2372,9 @@ export default {
     announcementsLearnMore: 'Learn more',
     announcementsAllUsers: 'Show to all users',
     announcementsAllUsersDesc: 'Off: only administrators see them. Has no effect while authentication is off.',
+    warnings: 'Warnings',
+    hideDeveloperModeWarning: 'Hide Developer LAN mode warning',
+    hideDeveloperModeWarningDesc: 'Hide the orange banner when a printer reports Developer LAN mode is off. MQTT control and some features may still need it enabled on the printer.',
     localLogin: {
       disable: 'Disable local username/password login',
       disableHint: 'When enabled, only SSO providers can sign in. LDAP is unaffected. Set BAMBUDDY_LOCAL_LOGIN=true on the server to keep a recovery path.',

@@ -1457,6 +1457,8 @@ export interface AppSettings {
   // Announcements from the Bambuddy maintainers (a signed file on GitHub).
   announcements_enabled?: boolean;
   announcements_all_users?: boolean;
+  // Hide the Developer LAN mode missing banner in the app shell.
+  hide_developer_mode_warning?: boolean;
   // #1589: false hides the local username/password form on the login page;
   // BAMBUDDY_LOCAL_LOGIN=true on the server flips the reported value back to
   // true so the env-var recovery path is visible to the SPA.
