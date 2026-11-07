@@ -189,6 +189,7 @@ _BOOL_SETTING_KEYS = frozenset(
         "announcements_enabled",
         "announcements_all_users",
         "virtual_printer_enabled",
+        "hide_developer_mode_warning",
         "ftp_retry_enabled",
         "mqtt_enabled",
         "mqtt_use_tls",
@@ -568,6 +569,10 @@ _UI_FLAG_FIELDS: tuple[str, ...] = (
     # update check ran even where it had been switched off.
     "currency",
     "check_updates",
+    # Layout banner for printers without Developer LAN mode. Same shell path
+    # as check_updates: any signed-in user sees the banner, so the hide toggle
+    # must not require SETTINGS_READ.
+    "hide_developer_mode_warning",
 )
 
 

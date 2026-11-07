@@ -147,6 +147,7 @@ class TestWhatItExposes:
             "user_notifications_enabled",
             "currency",
             "check_updates",
+            "hide_developer_mode_warning",
         }
 
     @pytest.mark.asyncio

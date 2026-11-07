@@ -78,7 +78,7 @@ registerSettingsSearch({ labelKey: 'settings.archiveSettings', tab: 'general', k
 registerSettingsSearch({ labelKey: 'settings.camera', tab: 'general', keywords: 'camera external video stream', anchor: 'card-camera' });
 registerSettingsSearch({ labelKey: 'settings.costTracking', tab: 'general', keywords: 'currency filament cost energy kwh price', anchor: 'card-cost' });
 registerSettingsSearch({ labelKey: 'settings.fileManager', tab: 'general', keywords: 'file manager archive mode disk warning storage', anchor: 'card-filemanager' });
-registerSettingsSearch({ labelKey: 'settings.updates', tab: 'general', keywords: 'updates version firmware beta check', anchor: 'card-updates' });
+registerSettingsSearch({ labelKey: 'settings.updates', tab: 'general', keywords: 'updates version firmware beta check developer lan mode warning banner hide', anchor: 'card-updates' });
 registerSettingsSearch({ labelKey: 'settings.dataManagement', tab: 'general', keywords: 'data reset clear logs notifications preferences', anchor: 'card-data' });
 registerSettingsSearch({ labelKey: 'settings.smartPlugs', tab: 'plugs', keywords: 'smart plug energy power automation tapo kasa tplink shelly', anchor: 'card-plugs' });
 registerSettingsSearch({ labelKey: 'haSensors.sectionTitle', tab: 'sensors', keywords: 'home assistant sensor printer temperature humidity alert notify block print', anchor: 'card-ha-sensors' });
@@ -1158,6 +1158,7 @@ export function SettingsPage() {
       (baseline.include_beta_updates ?? false) !== (localSettings.include_beta_updates ?? false) ||
       (baseline.announcements_enabled ?? true) !== (localSettings.announcements_enabled ?? true) ||
       (baseline.announcements_all_users ?? false) !== (localSettings.announcements_all_users ?? false) ||
+      (baseline.hide_developer_mode_warning ?? false) !== (localSettings.hide_developer_mode_warning ?? false) ||
       (baseline.local_login_enabled ?? true) !== (localSettings.local_login_enabled ?? true) ||
       baseline.notification_language !== localSettings.notification_language ||
       (baseline.bed_cooled_threshold ?? 35) !== (localSettings.bed_cooled_threshold ?? 35) ||
@@ -1276,6 +1277,7 @@ export function SettingsPage() {
         include_beta_updates: localSettings.include_beta_updates,
         announcements_enabled: localSettings.announcements_enabled ?? true,
         announcements_all_users: localSettings.announcements_all_users ?? false,
+        hide_developer_mode_warning: localSettings.hide_developer_mode_warning ?? false,
         local_login_enabled: localSettings.local_login_enabled,
         notification_language: localSettings.notification_language,
         bed_cooled_threshold: localSettings.bed_cooled_threshold,
@@ -3151,6 +3153,26 @@ export function SettingsPage() {
                     checked={localSettings.announcements_all_users ?? false}
                     onChange={(e) => updateSetting('announcements_all_users', e.target.checked)}
                     disabled={localSettings.announcements_enabled === false}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-bambu-dark-tertiary peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-bambu-green"></div>
+                </label>
+              </div>
+              <div className="border-t border-bambu-dark-tertiary pt-4">
+                <p className="text-xs font-medium text-bambu-gray uppercase tracking-wider mb-4">{t('settings.warnings', { defaultValue: 'Warnings' })}</p>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-white">{t('settings.hideDeveloperModeWarning', { defaultValue: 'Hide Developer LAN mode warning' })}</p>
+                  <p className="text-sm text-bambu-gray">
+                    {t('settings.hideDeveloperModeWarningDesc', { defaultValue: 'Hide the orange banner when a printer reports Developer LAN mode is off. MQTT control and some features may still need it enabled on the printer.' })}
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={localSettings.hide_developer_mode_warning ?? false}
+                    onChange={(e) => updateSetting('hide_developer_mode_warning', e.target.checked)}
                     className="sr-only peer"
                   />
                   <div className="w-11 h-6 bg-bambu-dark-tertiary peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-bambu-green"></div>

@@ -102,6 +102,10 @@ class AppSettings(BaseModel):
     announcements_all_users: bool = Field(
         default=False, description="Show announcements to every signed-in user, not only administrators"
     )
+    hide_developer_mode_warning: bool = Field(
+        default=False,
+        description="Hide the top banner when a printer reports Developer LAN mode disabled",
+    )
 
     # Language
     language: str = Field(default="en", description="UI language (en, de, fr, ja, it, pt-BR)")
@@ -704,6 +708,7 @@ class AppSettingsUpdate(BaseModel):
     include_beta_updates: bool | None = None
     announcements_enabled: bool | None = None
     announcements_all_users: bool | None = None
+    hide_developer_mode_warning: bool | None = None
     local_login_enabled: bool | None = None
     language: str | None = None
     notification_language: str | None = None
