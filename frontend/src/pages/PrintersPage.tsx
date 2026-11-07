@@ -158,7 +158,8 @@ import {
   PictureInPicture2,
   ThumbsUp,
   ThumbsDown,
-  KeyRound,
+KeyRound,
+  Share2,
 } from 'lucide-react';
 import { ConfirmOutcomeDialog } from '../components/ConfirmOutcomeDialog';
 
@@ -166,10 +167,12 @@ import { ConfirmOutcomeDialog } from '../components/ConfirmOutcomeDialog';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { api, discoveryApi, firmwareApi, withMediaToken, ApiError } from '../api/client';
 import { formatDateOnly, formatDateTime, formatETA, formatDuration, formatDurationFromHours, parseUTCDate } from '../utils/date';
-import type { Printer, PrinterCreate, PrinterStatus, AMSUnit, DiscoveredPrinter, FirmwareUpdateInfo, FirmwareUploadStatus, LinkedSpoolInfo, SpoolAssignment, HMSError, InventorySpool, SmartPlug, PrinterDiagnosticResult } from '../api/client';
+import type { Printer, PrinterCreate, PrinterStatus, AMSUnit, DiscoveredPrinter, FirmwareUpdateInfo, FirmwareUploadStatus, LinkedSpoolInfo, SpoolAssignment, HMSError, InventorySpool, SmartPlug, PrinterDiagnosticResult, PrintShareResponse } from '../api/client';
 import { Card, CardContent } from '../components/Card';
 import { Button } from '../components/Button';
 import { ConfirmModal } from '../components/ConfirmModal';
+import { PrintShareModal, type PrintShareFormValues } from '../components/PrintShareModal';
+import { copyTextToClipboard } from '../utils/clipboard';
 import { BulkPrinterToolbar, type PrinterState } from '../components/BulkPrinterToolbar';
 import { FileManagerModal } from '../components/FileManagerModal';
 import { useEmbeddedCameras } from '../contexts/EmbeddedCameraContext';
@@ -2145,7 +2148,34 @@ function PrinterCard({
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const { hasPermission, canModify, authEnabled, isAdmin } = useAuth();
+const { hasPermission, canModify, authEnabled, isAdmin } = useAuth();
+  const [showPrintShareConfirm, setShowPrintShareConfirm] = useState(false);
+  const [createdPrintShare, setCreatedPrintShare] = useState<PrintShareResponse | null>(null);
+  const createPrintShareMutation = useMutation({
+    mutationFn: (values: PrintShareFormValues) =>
+      api.createPrintShare({
+        printer_id: printer.id,
+        title: values.title || undefined,
+        project_url: values.project_url || undefined,
+        end_with_print: values.end_with_print,
+        expires_in_hours: values.expires_in_hours,
+      }),
+    onSuccess: async (share) => {
+      setCreatedPrintShare(share);
+      const url = share.url?.startsWith('http')
+        ? share.url
+        : `${window.location.origin}${share.path}`;
+      const ok = await copyTextToClipboard(url);
+      showToast(
+        ok
+          ? t('printShare.copied', 'Share link copied')
+          : t('printShare.copyFailed', 'Automatic copy failed — select the URL and copy it manually.'),
+        ok ? 'success' : 'error',
+      );
+    },
+    onError: (error: Error) =>
+      showToast(error.message || t('printShare.failed', 'Could not create share link'), 'error'),
+  });
   const [showMenu, setShowMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteArchives, setDeleteArchives] = useState(true);
@@ -6733,6 +6763,22 @@ function PrinterCard({
                     Replaces the old Settings > General > Camera switch, which
                     made choosing between an overlay and a window a trip to
                     another page for something you decide per camera. */}
+                {/* Share current print (#3461) — guest link ends when the print ends. */}
+                {(status?.state === 'RUNNING' || status?.state === 'PAUSE') && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={!hasPermission('camera:view') || createPrintShareMutation.isPending}
+                    title={t('printShare.sharePrint', 'Share this print')}
+                    className={footerIconButtonClass}
+                    onClick={() => {
+                      setCreatedPrintShare(null);
+                      setShowPrintShareConfirm(true);
+                    }}
+                  >
+                    <Share2 className="w-[var(--pc-i4,1rem)] h-[var(--pc-i4,1rem)]" />
+                  </Button>
+                )}
                 <div className="flex items-center flex-shrink-0">
                   <Button
                     variant="secondary"
@@ -7247,6 +7293,27 @@ function PrinterCard({
             setHaToggleConfirm(null);
           }}
           onCancel={() => setHaToggleConfirm(null)}
+        />
+      )}
+
+      {/* Print Share Links (#3461) — OE-style options + copy-ready URL */}
+      {showPrintShareConfirm && (
+        <PrintShareModal
+          printerName={printer.name}
+          defaultTitle={
+            (status?.current_print || status?.gcode_file || '').toString().split('/').pop() ||
+            printer.name
+          }
+          defaultProjectUrl={null}
+          isSubmitting={createPrintShareMutation.isPending}
+          createdShare={createdPrintShare}
+          onSubmit={(values) => createPrintShareMutation.mutate(values)}
+          onClose={() => {
+            if (!createPrintShareMutation.isPending) {
+              setShowPrintShareConfirm(false);
+              setCreatedPrintShare(null);
+            }
+          }}
         />
       )}
 

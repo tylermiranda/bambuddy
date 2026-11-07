@@ -415,6 +415,59 @@ export interface OverlayStatus {
   time_format: 'system' | '12h' | '24h';
 }
 
+/** Owner-facing Print Share Link (#3461). */
+export interface PrintShareResponse {
+  id: number;
+  public_id: string;
+  printer_id: number;
+  archive_id: number | null;
+  job_key: string;
+  title: string | null;
+  project_url: string | null;
+  end_with_print: boolean;
+  expires_at: string | null;
+  status: 'active' | 'ended' | string;
+  end_reason: string | null;
+  created_by_id: number | null;
+  created_at: string | null;
+  ended_at: string | null;
+  path: string;
+  url: string;
+}
+
+export interface PrintShareCreate {
+  printer_id: number;
+  title?: string;
+  project_url?: string;
+  end_with_print?: boolean;
+  expires_in_hours?: number | null;
+}
+
+/** Guest payload for `/share/{id}` (#3461). */
+export interface PrintSharePublicResponse {
+  public_id: string;
+  status: 'active' | 'ended' | string;
+  end_reason: string | null;
+  title: string | null;
+  project_url: string | null;
+  printer_id: number;
+  printer_name: string | null;
+  model: string | null;
+  camera_rotation: number;
+  time_format: 'system' | '12h' | '24h' | string;
+  ended_at: string | null;
+  connected: boolean;
+  state: string | null;
+  current_print: string | null;
+  gcode_file: string | null;
+  progress: number | null;
+  remaining_time: number | null;
+  layer_num: number | null;
+  total_layers: number | null;
+  stg_cur_name: string | null;
+  temperatures: Record<string, number>;
+}
+
 // Printer types
 // Printer locations (groups) and their appearance (#2962). `id` is null for a
 // location only printers carry, with no row of its own yet.
@@ -1457,6 +1510,8 @@ export interface AppSettings {
   // Announcements from the Bambuddy maintainers (a signed file on GitHub).
   announcements_enabled?: boolean;
   announcements_all_users?: boolean;
+  // Hide the Developer LAN mode missing banner in the app shell.
+  hide_developer_mode_warning?: boolean;
   // #1589: false hides the local username/password form on the login page;
   // BAMBUDDY_LOCAL_LOGIN=true on the server flips the reported value back to
   // true so the env-var recovery path is visible to the SPA.
@@ -7733,6 +7788,20 @@ export const api = {
         ? `/printers/${printerId}/overlay-status?token=${encodeURIComponent(token)}`
         : `/printers/${printerId}/overlay-status`,
     ),
+// Print Share Links (#3461) — guest URL for the duration of one print.
+  createPrintShare: (data: PrintShareCreate) =>
+    request<PrintShareResponse>('/print-shares/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  listPrintShares: (includeEnded = true) =>
+    request<PrintShareResponse[]>(`/print-shares/?include_ended=${includeEnded}`),
+  revokePrintShare: (publicId: string) =>
+    request<PrintShareResponse>(`/print-shares/${encodeURIComponent(publicId)}`, {
+      method: 'DELETE',
+    }),
+  getPrintSharePublic: (publicId: string) =>
+    request<PrintSharePublicResponse>(`/print-shares/${encodeURIComponent(publicId)}/public`),
   getCameraStatus: (printerId: number) =>
     request<{ active: boolean; stalled: boolean }>(`/printers/${printerId}/camera/status`),
   diagnoseCamera: (printerId: number) =>

@@ -5862,7 +5862,7 @@ async def _run_migrations(conn):
     # Nullable: existing rows have none and keep being shown as before.
     await _safe_execute(conn, "ALTER TABLE slot_preset_mappings ADD COLUMN tray_info_idx VARCHAR(32)")
 
-    # Migration: printers picked for the chamber light while the camera is in
+# Migration: printers picked for the chamber light while the camera is in
     # use (#1655), for camera_light_mode "selected". Off by default, so no
     # printer's light changes on upgrade. The backfill covers a table
     # create_all() already gave the column (the ALTER is then swallowed and
@@ -5871,6 +5871,20 @@ async def _run_migrations(conn):
     async with conn.begin_nested():
         await conn.execute(
             text("UPDATE printers SET camera_light_auto = :off WHERE camera_light_auto IS NULL"), {"off": False}
+        )
+
+    # Migration: Print Share Links OE-style options (#3461) — end-with-print
+    # toggle + optional hard expiry on existing installs (create_all covers fresh).
+    await _safe_execute(
+        conn, "ALTER TABLE print_shares ADD COLUMN end_with_print BOOLEAN DEFAULT TRUE"
+    )
+    await _safe_execute(conn, "ALTER TABLE print_shares ADD COLUMN expires_at DATETIME")
+    async with conn.begin_nested():
+        await conn.execute(
+            text(
+                "UPDATE print_shares SET end_with_print = :on WHERE end_with_print IS NULL"
+            ),
+            {"on": True},
         )
 
     # Migration: printer-scoped groups (#1727). Defaults off, so no existing

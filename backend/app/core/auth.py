@@ -1160,16 +1160,29 @@ class StreamOpener:
     started_at: datetime = field(default_factory=utcnow_naive)
 
 
-async def camera_stream_access(token: str) -> tuple[PrinterScope, StreamOpener] | None:
+async def camera_stream_access(token: str, printer_id: int | None = None) -> tuple[PrinterScope, StreamOpener] | None:
     """Verify a camera stream token: the minter's printer scope and who it is.
 
     Tries the ephemeral 60-minute token first (the common, browser-bound case)
     and falls through to long-lived tokens (#1108) for HA / kiosk integrations
     that paste a token once and expect it to keep working for days; those
     carry their owner's scope. None when the token is invalid.
+
+    Print Share Links (#3461) use a ``bbps_`` public id as the token. Those are
+    bound to one printer and one active job — when ``printer_id`` is provided
+    the share must match that printer.
     """
     now = datetime.now(timezone.utc)
     async with async_session() as db:
+        from backend.app.services.print_shares import is_print_share_token, verify_active_share_token
+
+        if is_print_share_token(token):
+            share = await verify_active_share_token(db, token, printer_id=printer_id)
+            if share is None:
+                return None
+            scope = PrinterScope(frozenset({share.printer_id}))
+            return scope, StreamOpener(auth_on=True)
+
         result = await db.execute(
             select(AuthEphemeralToken).where(
                 AuthEphemeralToken.token == token,
@@ -1219,13 +1232,13 @@ async def camera_stream_access(token: str) -> tuple[PrinterScope, StreamOpener] 
         )
 
 
-async def verify_camera_stream_token(token: str) -> PrinterScope | None:
+async def verify_camera_stream_token(token: str, printer_id: int | None = None) -> PrinterScope | None:
     """Verify a camera stream token (reusable -- does not consume it).
 
     Returns the printer scope of whoever minted it (#1727), or None when the
     token is invalid. See camera_stream_access.
     """
-    access = await camera_stream_access(token)
+    access = await camera_stream_access(token, printer_id=printer_id)
     return access[0] if access is not None else None
 
 
@@ -1307,7 +1320,7 @@ async def verify_camwall_token(token: str) -> PrinterScope | None:
         return await resolve_user_id_printer_scope(db, record.user_id)
 
 
-async def verify_overlay_token(token: str) -> PrinterScope | None:
+async def verify_overlay_token(token: str, printer_id: int | None = None) -> PrinterScope | None:
     """Verify a streaming-overlay token (#2613). Reusable -- does not consume it.
 
     Returns the token owner's printer scope (#1727), or None when invalid.
@@ -1318,8 +1331,19 @@ async def verify_overlay_token(token: str) -> PrinterScope | None:
     a bare ``camera_stream`` token (handed out for video alone). The 60-minute
     ephemeral token belongs to a logged-in browser, which reaches the same data
     through the ordinary printers API and has no need of this endpoint.
+
+    Print Share Links (#3461) also pass here: a guest share is allowed to see
+    the same single-printer status the overlay draws, scoped to that printer.
     """
     async with async_session() as db:
+        from backend.app.services.print_shares import is_print_share_token, verify_active_share_token
+
+        if is_print_share_token(token):
+            share = await verify_active_share_token(db, token, printer_id=printer_id)
+            if share is None:
+                return None
+            return PrinterScope(frozenset({share.printer_id}))
+
         from backend.app.services.long_lived_tokens import verify_token as verify_long_lived
 
         record = await verify_long_lived(db, token, scope="overlay")
@@ -2700,7 +2724,7 @@ def require_camera_stream_token_if_auth_enabled():
         async with async_session() as db:
             if not await is_auth_enabled(db):
                 return StreamOpener(auth_on=False)  # Auth disabled, allow access
-        access = await camera_stream_access(token) if token else None
+        access = await camera_stream_access(token, printer_id=printer_id) if token else None
         if access is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -2756,7 +2780,7 @@ def require_overlay_token_if_auth_enabled():
         async with async_session() as db:
             if not await is_auth_enabled(db):
                 return  # Auth disabled, allow access
-        scope = await verify_overlay_token(token) if token else None
+        scope = await verify_overlay_token(token, printer_id=printer_id) if token else None
         if scope is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,

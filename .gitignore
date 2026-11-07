@@ -108,3 +108,7 @@ test_pipeline_run_1.3mf
 htmlcov/
 
 feature_votes.sh
+
+# Local Mac dogfood deploy (not for upstream)
+deploy-mac/
+

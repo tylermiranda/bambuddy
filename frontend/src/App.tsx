@@ -2,6 +2,7 @@ import { Component, Suspense, type ReactNode, type ErrorInfo } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Layout } from './components/Layout';
+
 import { useWebSocket } from './hooks/useWebSocket';
 import { usePrintProgressTitle } from './hooks/usePrintProgressTitle';
 import { useStreamTokenSync } from './hooks/useCameraStreamToken';
@@ -32,6 +33,7 @@ const LibraryTrashPage = lazyPage(() => import('./pages/LibraryTrashPage'), 'Lib
 const CameraPage = lazyPage(() => import('./pages/CameraPage'), 'CameraPage');
 const CamWallPage = lazyPage(() => import('./pages/CamWallPage'), 'CamWallPage');
 const StreamOverlayPage = lazyPage(() => import('./pages/StreamOverlayPage'), 'StreamOverlayPage');
+const PrintSharePage = lazyPage(() => import('./pages/PrintSharePage'), 'PrintSharePage');
 const ExternalLinkPage = lazyPage(() => import('./pages/ExternalLinkPage'), 'ExternalLinkPage');
 const GroupEditPage = lazyPage(() => import('./pages/GroupEditPage'), 'GroupEditPage');
 const PrinterLocationsPage = lazyPage(() => import('./pages/PrinterLocationsPage'), 'PrinterLocationsPage');
@@ -212,6 +214,9 @@ function App() {
 
                 {/* Stream overlay page - standalone for OBS/streaming embeds, no auth required */}
                 <Route path="/overlay/:printerId" element={<StreamOverlayPage />} />
+
+                {/* Print Share Links (#3461) — guest page for the duration of one print */}
+                <Route path="/share/:publicId" element={<PrintSharePage />} />
 
                 {/* Cam Wall on its own URL (#2531). Outside ProtectedRoute because a
                     ?token= kiosk has no session to protect; the page itself sends a

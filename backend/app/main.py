@@ -72,6 +72,7 @@ from backend.app.api.routes import (
     pipeline_runs,
     print_log,
     print_queue,
+print_shares,
     printer_locations,
     printer_sensor_history,
     printers,
@@ -10803,6 +10804,37 @@ async def _close_out_print(printer_id: int, data: dict):
         _schedule_timelapse_scan(archive_id, printer_id, plate_id=notify_plate_id, run_id=completed_run_id)
         log_timing("Timelapse scan scheduled")
 
+    # End any Print Share Links for this printer (#3461). Map print status to
+    # a share end_reason; unknown statuses still close the guest link.
+    try:
+        raw_status = (data.get("status") or "completed").lower()
+        if raw_status in ("failed", "failure"):
+            share_reason = "failed"
+        elif raw_status in ("cancelled", "canceled", "stopped"):
+            share_reason = "cancelled"
+        else:
+            share_reason = "completed"
+        from backend.app.services.print_shares import end_active_shares_for_printer
+
+        async with async_session() as share_db:
+            # Only shares that opted into end-with-print (OE default). Shares
+            # with end_with_print=False stay until expiry / revoke.
+            ended = await end_active_shares_for_printer(
+                share_db,
+                printer_id,
+                reason=share_reason,
+                only_end_with_print=True,
+            )
+            if ended:
+                logger.info(
+                    "[CALLBACK] Ended %s print share(s) for printer %s reason=%s",
+                    ended,
+                    printer_id,
+                    share_reason,
+                )
+    except Exception as e:
+        logger.warning("Failed to end print shares for printer %s: %s", printer_id, e)
+
     logger.info("[CALLBACK] on_print_complete finished for printer %s, archive %s", printer_id, archive_id)
 
 
@@ -12897,6 +12929,12 @@ async def auth_middleware(request, call_next):
         if pattern in path:
             return await call_next(request)
 
+    # Print Share Links guest status (#3461). Only the ``…/public`` suffix is
+    # middleware-public — create / list / revoke stay behind JWT. Broader
+    # ``/print-shares/`` substring matching would also open those owner routes.
+    if "/print-shares/" in path and path.rstrip("/").endswith("/public"):
+        return await call_next(request)
+
     # Check if auth is enabled. Fail CLOSED on any exception during the
     # probe — GHSA-6mf4-q26m-47pv: the previous fail-open path here let
     # an attacker who could force a DB exception (e.g. file-descriptor
@@ -13094,6 +13132,7 @@ app.include_router(announcements.router, prefix=app_settings.api_prefix)
 app.include_router(maintenance.router, prefix=app_settings.api_prefix)
 app.include_router(camera.router, prefix=app_settings.api_prefix)
 app.include_router(camwall.router, prefix=app_settings.api_prefix)
+app.include_router(print_shares.router, prefix=app_settings.api_prefix)
 app.include_router(external_links.router, prefix=app_settings.api_prefix)
 app.include_router(projects.router, prefix=app_settings.api_prefix)
 app.include_router(library.router, prefix=app_settings.api_prefix)
