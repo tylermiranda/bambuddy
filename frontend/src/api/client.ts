@@ -1103,6 +1103,25 @@ export interface ArchiveStats {
   energy_data_warming_up?: boolean;
 }
 
+export interface TrendData {
+  week_start: string;
+  prints: number;
+  successful_prints: number;
+  failed_prints: number;
+  filament_grams: number;
+  print_time_hours: number;
+  cost: number;
+}
+
+export interface TopFileRow {
+  print_name: string | null;
+  print_count: number;
+  total_filament_grams: number;
+  total_print_time_seconds: number;
+  first_printed_at: string | null;
+  last_printed_at: string | null;
+}
+
 export interface TagInfo {
   name: string;
   count: number;
@@ -5959,6 +5978,25 @@ export const api = {
     if (options?.createdById !== undefined) params.set('created_by_id', String(options.createdById));
     const qs = params.toString();
     return request<ArchiveStats>(`/archives/stats${qs ? `?${qs}` : ''}`);
+  },
+  getStatsTrends: (options?: { dateFrom?: string; dateTo?: string; createdById?: number }) => {
+    const params = new URLSearchParams();
+    if (options?.dateFrom) params.set('date_from', options.dateFrom);
+    if (options?.dateTo) params.set('date_to', options.dateTo);
+    addDayZone(params);
+    if (options?.createdById !== undefined) params.set('created_by_id', String(options.createdById));
+    const qs = params.toString();
+    return request<TrendData[]>(`/archives/stats/trends${qs ? `?${qs}` : ''}`);
+  },
+  getStatsTopFiles: (options?: { dateFrom?: string; dateTo?: string; createdById?: number; limit?: number }) => {
+    const params = new URLSearchParams();
+    if (options?.dateFrom) params.set('date_from', options.dateFrom);
+    if (options?.dateTo) params.set('date_to', options.dateTo);
+    addDayZone(params);
+    if (options?.createdById !== undefined) params.set('created_by_id', String(options.createdById));
+    if (options?.limit !== undefined) params.set('limit', String(options.limit));
+    const qs = params.toString();
+    return request<TopFileRow[]>(`/archives/stats/top-files${qs ? `?${qs}` : ''}`);
   },
   // Tag management
   getTags: () => request<TagInfo[]>('/archives/tags'),

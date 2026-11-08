@@ -1974,6 +1974,151 @@ async def get_archive_stats(
     )
 
 
+class TrendData(BaseModel):
+    week_start: str
+    prints: int
+    successful_prints: int
+    failed_prints: int
+    filament_grams: float
+    print_time_hours: float
+    cost: float
+
+
+class TopFileRow(BaseModel):
+    print_name: str | None
+    print_count: int
+    total_filament_grams: float
+    total_print_time_seconds: int
+    first_printed_at: datetime | None
+    last_printed_at: datetime | None
+
+
+@router.get("/stats/trends", response_model=list[TrendData])
+@track_latency
+async def get_stats_trends(
+    date_from: date | None = Query(None, description="Start date (inclusive), YYYY-MM-DD"),
+    date_to: date | None = Query(None, description="End date (inclusive), YYYY-MM-DD"),
+    tz: str | None = Query(None, max_length=64),
+    created_by_id: int | None = Query(None, description="Filter by user who created the print (-1 for no user)"),
+    db: AsyncSession = Depends(get_db, scope="function"),
+    current_user: User | None = RequirePermissionIfAuthEnabled(Permission.STATS_READ),
+    printer_scope: PrinterScope = RequestPrinterScope,
+    actor: User | ApiKeyActor | None = RequestActor,
+):
+    """Weekly-bucketed aggregates for sparkline charts.
+
+    Returns one row per ISO week covering the date range, with print counts,
+    filament used, print time, and cost. Sorted oldest first.
+    """
+    from backend.app.models.print_log import PrintLogEntry
+
+    _validate_user_filter_permission(actor, created_by_id)
+
+    base_conditions = []
+    if date_from:
+        dt_from = local_date_start(date_from, day_zone(tz))
+        base_conditions.append(PrintLogEntry.created_at >= dt_from)
+    if date_to:
+        dt_to = local_date_end(date_to, day_zone(tz))
+        base_conditions.append(PrintLogEntry.created_at <= dt_to)
+    _apply_run_user_filter(base_conditions, created_by_id)
+    if (clause := printer_scope.where(PrintLogEntry.printer_id)) is not None:
+        base_conditions.append(clause)
+
+    # Use strftime to bucket by ISO week (%Y-%W) — works on SQLite.
+    from sqlalchemy import func as sa_func
+
+    week_col = sa_func.strftime("%Y-%W", PrintLogEntry.created_at)
+
+    rows = await db.execute(
+        select(
+            week_col.label("week_start"),
+            sa_func.count(PrintLogEntry.id).label("prints"),
+            sa_func.sum(sa_func.case((PrintLogEntry.status == "completed", 1), else_=0)).label("successful_prints"),
+            sa_func.sum(sa_func.case((PrintLogEntry.status.in_(("failed", "aborted")), 1), else_=0)).label("failed_prints"),
+            sa_func.coalesce(sa_func.sum(PrintLogEntry.filament_used_grams), 0).label("filament_grams"),
+            sa_func.coalesce(sa_func.sum(PrintLogEntry.duration_seconds), 0).label("total_seconds"),
+            sa_func.coalesce(sa_func.sum(PrintLogEntry.cost), 0).label("cost"),
+        )
+        .where(*base_conditions)
+        .group_by(week_col)
+        .order_by(week_col)
+    )
+
+    result = []
+    for row in rows.all():
+        week, prints, successful, failed, filament, total_secs, cost = row
+        result.append(
+            TrendData(
+                week_start=str(week),
+                prints=prints,
+                successful_prints=successful,
+                failed_prints=failed,
+                filament_grams=round(float(filament), 1),
+                print_time_hours=round(total_secs / 3600, 1),
+                cost=round(float(cost), 2),
+            )
+        )
+    return result
+
+
+@router.get("/stats/top-files", response_model=list[TopFileRow])
+@track_latency
+async def get_stats_top_files(
+    date_from: date | None = Query(None, description="Start date (inclusive), YYYY-MM-DD"),
+    date_to: date | None = Query(None, description="End date (inclusive), YYYY-MM-DD"),
+    tz: str | None = Query(None, max_length=64),
+    created_by_id: int | None = Query(None, description="Filter by user who created the print (-1 for no user)"),
+    limit: int = Query(10, ge=1, le=100, description="Number of top files to return"),
+    db: AsyncSession = Depends(get_db, scope="function"),
+    current_user: User | None = RequirePermissionIfAuthEnabled(Permission.STATS_READ),
+    printer_scope: PrinterScope = RequestPrinterScope,
+    actor: User | ApiKeyActor | None = RequestActor,
+):
+    """Top most-printed files by print count."""
+    from backend.app.models.print_log import PrintLogEntry
+
+    _validate_user_filter_permission(actor, created_by_id)
+
+    base_conditions = []
+    if date_from:
+        dt_from = local_date_start(date_from, day_zone(tz))
+        base_conditions.append(PrintLogEntry.created_at >= dt_from)
+    if date_to:
+        dt_to = local_date_end(date_to, day_zone(tz))
+        base_conditions.append(PrintLogEntry.created_at <= dt_to)
+    _apply_run_user_filter(base_conditions, created_by_id)
+    if (clause := printer_scope.where(PrintLogEntry.printer_id)) is not None:
+        base_conditions.append(clause)
+
+    rows = await db.execute(
+        select(
+            PrintLogEntry.print_name,
+            sa_func.count(PrintLogEntry.id).label("print_count"),
+            sa_func.coalesce(sa_func.sum(PrintLogEntry.filament_used_grams), 0).label("total_filament"),
+            sa_func.coalesce(sa_func.sum(PrintLogEntry.duration_seconds), 0).label("total_seconds"),
+            sa_func.min(PrintLogEntry.created_at).label("first_printed"),
+            sa_func.max(PrintLogEntry.created_at).label("last_printed"),
+        )
+        .where(*base_conditions)
+        .group_by(PrintLogEntry.print_name)
+        .order_by(sa_func.count(PrintLogEntry.id).desc())
+        .limit(limit)
+    )
+
+    return [
+        TopFileRow(
+            print_name=row.print_name,
+            print_count=row.print_count,
+            total_filament_grams=round(float(row.total_filament), 1),
+            total_print_time_seconds=row.total_seconds,
+            first_printed_at=row.first_printed,
+            last_printed_at=row.last_printed,
+        )
+        for row in rows.all()
+    ]
+
+
 async def _sum_live_plug_totals(db: AsyncSession) -> float:
     """Sum the live lifetime counter from every smart plug.
 

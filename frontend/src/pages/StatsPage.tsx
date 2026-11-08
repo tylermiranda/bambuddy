@@ -708,6 +708,131 @@ function PrinterStatsWidget({
   );
 }
 
+function SparklineWidget({
+  dateFrom,
+  dateTo,
+  createdById,
+}: {
+  dateFrom?: string;
+  dateTo?: string;
+  createdById?: number;
+}) {
+  const { t } = useTranslation();
+  const { data: trends } = useQuery({
+    queryKey: ['statsTrends', dateFrom, dateTo, createdById ?? 'all'],
+    queryFn: () => api.getStatsTrends({ dateFrom, dateTo, createdById }),
+    staleTime: 60_000,
+  });
+
+  if (!trends || trends.length === 0) {
+    return <p className="text-bambu-gray text-center py-4">{t('stats.noTrendData', 'No trend data yet')}</p>;
+  }
+
+  const maxPrints = Math.max(...trends.map((w) => w.prints), 1);
+  const maxFilament = Math.max(...trends.map((w) => w.filament_grams), 1);
+  const maxTime = Math.max(...trends.map((w) => w.print_time_hours), 1);
+
+  const sparkline = (data: number[], max: number, color: string) => (
+    <div className="flex items-end gap-px h-12">
+      {data.slice(-12).map((v) => (
+        <div
+          key={v}
+          className={`w-[calc(100%/12)] ${color} rounded-t`}
+          style={{ height: `${(v / max) * 100}%` }}
+        />
+      ))}
+    </div>
+  );
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="bg-bambu-dark rounded-lg p-3">
+        <div className="flex items-center gap-2 mb-1">
+          <Package className="w-4 h-4 text-bambu-green" />
+          <span className="text-xs text-bambu-gray">{t('stats.printsPerWeek', 'Prints / week')}</span>
+        </div>
+        <div className="text-lg font-bold text-white">
+          {trends.slice(-1)[0].prints}
+        </div>
+        <div className="h-12 mt-1">{sparkline(trends.map((w) => w.prints), maxPrints, 'bg-bambu-green')}</div>
+      </div>
+      <div className="bg-bambu-dark rounded-lg p-3">
+        <div className="flex items-center gap-2 mb-1">
+          <Package className="w-4 h-4 text-orange-400" />
+          <span className="text-xs text-bambu-gray">{t('stats.filamentPerWeek', 'Filament / week')}</span>
+        </div>
+        <div className="text-lg font-bold text-white">
+          {formatWeight(trends.slice(-1)[0].filament_grams)}
+        </div>
+        <div className="h-12 mt-1">{sparkline(trends.map((w) => w.filament_grams), maxFilament, 'bg-orange-400')}</div>
+      </div>
+      <div className="bg-bambu-dark rounded-lg p-3">
+        <div className="flex items-center gap-2 mb-1">
+          <Clock className="w-4 h-4 text-sky-400" />
+          <span className="text-xs text-bambu-gray">{t('stats.timePerWeek', 'Time / week')}</span>
+        </div>
+        <div className="text-lg font-bold text-white">
+          {trends.slice(-1)[0].print_time_hours.toFixed(1)}h
+        </div>
+        <div className="h-12 mt-1">{sparkline(trends.map((w) => w.print_time_hours), maxTime, 'bg-sky-400')}</div>
+      </div>
+    </div>
+  );
+}
+
+function TopFilesWidget({
+  dateFrom,
+  dateTo,
+  createdById,
+  size = 1,
+}: {
+  dateFrom?: string;
+  dateTo?: string;
+  createdById?: number;
+  size?: 1 | 2 | 4;
+}) {
+  const { t } = useTranslation();
+  const limit = size >= 2 ? 20 : 10;
+  const { data: topFiles } = useQuery({
+    queryKey: ['topFiles', dateFrom, dateTo, createdById ?? 'all', limit],
+    queryFn: () => api.getStatsTopFiles({ dateFrom, dateTo, createdById, limit }),
+    staleTime: 60_000,
+  });
+
+  if (!topFiles || topFiles.length === 0) {
+    return <p className="text-bambu-gray text-center py-4">{t('stats.noTopFiles', 'No top files data yet')}</p>;
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-xs text-left">
+        <thead>
+          <tr className="text-bambu-gray border-b border-bambu-dark-tertiary">
+            <th className="px-2 py-1.5 w-8">#</th>
+            <th className="px-2 py-1.5">{t('common.name', 'Name')}</th>
+            <th className="px-2 py-1.5 text-right">{t('stats.printCount', 'Prints')}</th>
+            <th className="px-2 py-1.5 text-right">{t('stats.filament', 'Filament')}</th>
+            <th className="px-2 py-1.5 text-right">{t('stats.printTime', 'Time')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {topFiles.map((f, i) => (
+            <tr key={f.print_name ?? `__empty_${i}`} className="border-b border-bambu-dark-tertiary">
+              <td className="px-2 py-1.5 text-bambu-gray">{i + 1}</td>
+              <td className="px-2 py-1.5 text-white truncate max-w-[200px]" title={f.print_name ?? ''}>
+                {f.print_name || <em className="text-bambu-gray">{t('common.unnamed', 'Unnamed')}</em>}
+              </td>
+              <td className="px-2 py-1.5 text-right text-white font-medium">{f.print_count}</td>
+              <td className="px-2 py-1.5 text-right text-bambu-gray">{formatWeight(f.total_filament_grams)}</td>
+              <td className="px-2 py-1.5 text-right text-bambu-gray">{formatDuration(f.total_print_time_seconds)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function FilamentTrendsWidget({
   archives,
   currency,
@@ -1151,6 +1276,18 @@ export function StatsPage() {
       id: 'quick-stats',
       title: t('stats.quickStats'),
       component: <QuickStatsWidget stats={stats} currency={currency} />,
+      defaultSize: 2,
+    },
+    {
+      id: 'weekly-trends',
+      title: t('stats.weeklyTrends', 'Weekly Trends'),
+      component: <SparklineWidget dateFrom={effectiveDateRange.dateFrom} dateTo={effectiveDateRange.dateTo} createdById={createdByIdParam} />,
+      defaultSize: 2,
+    },
+    {
+      id: 'top-files',
+      title: t('stats.topFiles', 'Top Printed Files'),
+      component: (size) => <TopFilesWidget dateFrom={effectiveDateRange.dateFrom} dateTo={effectiveDateRange.dateTo} createdById={createdByIdParam} size={size} />,
       defaultSize: 2,
     },
     {
