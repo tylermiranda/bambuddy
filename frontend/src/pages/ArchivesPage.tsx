@@ -1306,11 +1306,26 @@ function ArchiveCard({
           {archive.filament_used_grams && (
             <div
               className="flex items-center gap-1.5 text-bambu-gray"
-              title={UNFINISHED_STATUSES.has(archive.status) ? t('archives.card.fullPrintFigure') : undefined}
+              title={
+                archive.filament_accuracy
+                  ? `Estimated: ${archive.filament_estimate_grams?.toFixed(1) ?? '?'}g\nActual: ${archive.filament_used_grams.toFixed(1)}g\nAccuracy: ${archive.filament_accuracy.toFixed(0)}%`
+                  : undefined
+              }
               data-testid="archive-grams"
             >
               <Package className="w-3 h-3" />
               {archive.filament_used_grams.toFixed(1)}g
+              {archive.filament_accuracy && (
+                <span className={`text-[10px] px-1 rounded ${
+                  archive.filament_accuracy >= 95 && archive.filament_accuracy <= 105
+                    ? 'bg-bambu-green/20 text-bambu-green'
+                    : archive.filament_accuracy > 105
+                      ? 'bg-sky-500/20 text-sky-400'
+                      : 'bg-amber-500/20 text-amber-400'
+                }`}>
+                  {archive.filament_accuracy > 100 ? '+' : ''}{(archive.filament_accuracy - 100).toFixed(0)}%
+                </span>
+              )}
             </div>
           )}
           {(archive.cost != null || archive.energy_cost != null || archive.wear_cost != null) && (

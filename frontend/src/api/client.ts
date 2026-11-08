@@ -959,6 +959,9 @@ export interface Archive {
   actual_time_seconds: number | null;  // Computed from started_at/completed_at
   time_accuracy: number | null;  // Percentage: 100 = perfect, >100 = faster than estimated
   time_estimate_seconds?: number | null;  // The latest print's plate estimate, what time_accuracy compares with
+  filament_accuracy: number | null;  // Percentage: 100 = perfect, >100 = used less than estimated
+  filament_actual_grams: number | null;  // Actual filament used (latest run)
+  filament_estimate_grams: number | null;  // Estimated filament from slicer (latest run)
   filament_used_grams: number | null;
   filament_type: string | null;
   filament_color: string | null;

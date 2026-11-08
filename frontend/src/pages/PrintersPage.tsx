@@ -4986,6 +4986,25 @@ const { hasPermission, canModify, authEnabled, isAdmin } = useAuth();
 
             {viewMode === 'expanded' && showClearPlateButton && expandedClearPlateButton}
 
+            {/* SD Card / Storage status */}
+            {status?.sdcard && (
+              <div className="flex items-center gap-1.5 px-2 py-1.5 bg-bambu-dark rounded-lg text-xs text-bambu-gray mt-1">
+                <HardDrive className="w-3 h-3" />
+                <span>{t('printers.sdCard.label', 'SD Card')}</span>
+                {(() => {
+                  const storageHms = (status?.hms_errors || []).filter(e =>
+                    e.full_code === '0500010000030004' ||
+                    e.full_code === '0500010000030015' ||
+                    e.full_code === '0500030000020020'
+                  );
+                  if (storageHms.length > 0) {
+                    return <span className="text-amber-400 font-semibold ml-1">{t('printers.sdCard.storageLow', 'Storage Low')}</span>;
+                  }
+                  return null;
+                })()}
+              </div>
+            )}
+
             {/* Controls */}
             {viewMode === 'expanded' && !isDeveloperModeOff && (() => {
               // Determine print state for control buttons

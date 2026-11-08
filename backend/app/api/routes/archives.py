@@ -386,6 +386,45 @@ def compute_time_accuracy(archive: PrintArchive, run_aggregate: dict | None = No
     return result
 
 
+def compute_filament_accuracy(archive: PrintArchive, run_aggregate: dict | None = None) -> dict:
+    """The filament accuracy of the archive's latest print: how its filament
+    used compares with the slicer's estimate for the plate it printed.
+
+    Returns ``filament_actual_grams``, ``filament_estimate_grams`` and
+    ``filament_accuracy`` = estimate / actual * 100 (100 % = exact, above 100 %
+    = used less than estimated). Same plate/estimate logic as
+    ``compute_time_accuracy``.
+    """
+    result: dict[str, int | float | None] = {
+        "filament_actual_grams": None,
+        "filament_estimate_grams": None,
+        "filament_accuracy": None,
+    }
+    latest = (run_aggregate or {}).get("latest_run")
+    if latest is not None:
+        plate_id, status = latest.plate_id, latest.status
+        actual_grams = latest.filament_used_grams
+    else:
+        plate_id, status = archive.plate_id, archive.status
+        actual_grams = archive.filament_used_grams
+
+    if status != "completed" or not actual_grams or actual_grams <= 0:
+        return result
+
+    estimate = run_estimate(archive, plate_id)
+    if estimate is not None and not estimate.per_plate and ((run_aggregate or {}).get("run_count") or 0) > 1:
+        estimate = None
+    if estimate is None or not estimate.grams or estimate.grams <= 0:
+        return result
+
+    result["filament_actual_grams"] = actual_grams
+    result["filament_estimate_grams"] = estimate.grams
+    accuracy = (estimate.grams / actual_grams) * 100
+    if 5 <= accuracy <= 500:
+        result["filament_accuracy"] = round(accuracy, 1)
+    return result
+
+
 async def _load_run_aggregates(
     db: AsyncSession, archive_ids: list[int], printer_scope: PrinterScope | None = None, printer_id: int | None = None
 ) -> dict[int, dict]:
@@ -629,6 +668,10 @@ def archive_to_response(
     # The time accuracy of the latest print, from ``run_aggregate`` (#3375).
     accuracy_data = compute_time_accuracy(archive, run_aggregate)
     data.update(accuracy_data)
+
+    # The filament accuracy of the latest print.
+    filament_accuracy_data = compute_filament_accuracy(archive, run_aggregate)
+    data.update(filament_accuracy_data)
 
     if run_aggregate:
         data["run_count"] = run_aggregate.get("run_count", 0)

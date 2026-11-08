@@ -113,6 +113,10 @@ class ArchiveResponse(BaseModel):
     # The slicer's time for the plate the latest print printed (#3375), what
     # time_accuracy compares with; print_time_seconds adds every plate up.
     time_estimate_seconds: int | None = _per_print(None)
+    # Filament accuracy: how actual grams compare with the slicer's estimate.
+    filament_accuracy: float | None = _per_print(None)
+    filament_actual_grams: float | None = _per_print(None)
+    filament_estimate_grams: float | None = _per_print(None)
     filament_used_grams: float | None
     filament_type: str | None
     filament_color: str | None
