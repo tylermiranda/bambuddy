@@ -1994,7 +1994,6 @@ class TopFileRow(BaseModel):
 
 
 @router.get("/stats/trends", response_model=list[TrendData])
-@track_latency
 async def get_stats_trends(
     date_from: date | None = Query(None, description="Start date (inclusive), YYYY-MM-DD"),
     date_to: date | None = Query(None, description="End date (inclusive), YYYY-MM-DD"),
@@ -2063,7 +2062,6 @@ async def get_stats_trends(
 
 
 @router.get("/stats/top-files", response_model=list[TopFileRow])
-@track_latency
 async def get_stats_top_files(
     date_from: date | None = Query(None, description="Start date (inclusive), YYYY-MM-DD"),
     date_to: date | None = Query(None, description="End date (inclusive), YYYY-MM-DD"),
