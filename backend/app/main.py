@@ -128,7 +128,7 @@ from backend.app.services.bambu_ftp import (
     normalize_3mf_name,
     with_ftp_retry,
 )
-from backend.app.services.bambu_mqtt import PrinterState
+from backend.app.services.bambu_mqtt import HMS_MQTT_VERIFY_FAILED, PrinterState
 from backend.app.services.camera_light import camera_light
 from backend.app.services.energy_plug import energy_plug_candidates, select_energy_reading
 from backend.app.services.github_backup import github_backup_service
@@ -2543,6 +2543,8 @@ async def on_printer_status_change(printer_id: int, state: PrinterState):
     # have known descriptions (e.g. user-initiated actions, not real errors).
     _HMS_NOTIFICATION_SUPPRESS = {
         "0500_400E",  # Printing was cancelled (user action, not an error)
+        "0500_0007",  # MQTT command verification failed (view-only / developer mode disabled)
+        "0500_4001",  # Bambu Cloud connection failure
     }
 
     # Check for new HMS errors and send notifications
@@ -2587,13 +2589,18 @@ async def on_printer_status_change(printer_id: int, state: PrinterState):
                         error_code_int = int(error.code.replace("0x", ""), 16) if error.code else 0
                         error_code_masked = error_code_int & 0xFFFF
                         short_code = f"{(error.attr >> 16) & 0xFFFF:04X}_{error_code_masked:04X}"
+                        full_code = getattr(error, "full_code", "") or ""
 
                         # Only notify for errors Bambu publishes text for — printers
                         # send undocumented codes that aren't real errors, and Bambu
                         # lists some with empty text. Resolved at parse time (#2926);
                         # short_code is still needed for the suppression set below.
                         description = error.description
-                        if not description or short_code in _HMS_NOTIFICATION_SUPPRESS:
+                        if (
+                            not description
+                            or short_code in _HMS_NOTIFICATION_SUPPRESS
+                            or full_code == HMS_MQTT_VERIFY_FAILED
+                        ):
                             continue
 
                         error_type = f"{module_name} Error"
@@ -2621,10 +2628,12 @@ async def on_printer_status_change(printer_id: int, state: PrinterState):
                             "severity": e.severity,
                         }
                         for e in new_errors
+                        if getattr(e, "full_code", "") != HMS_MQTT_VERIFY_FAILED
                     ]
-                    await mqtt_relay.on_printer_error(
-                        printer_id, printer_info.name, printer_info.serial_number, errors_data
-                    )
+                    if errors_data:
+                        await mqtt_relay.on_printer_error(
+                            printer_id, printer_info.name, printer_info.serial_number, errors_data
+                        )
 
             except Exception as e:
                 logging.getLogger(__name__).warning(f"HMS error notification failed: {e}")
