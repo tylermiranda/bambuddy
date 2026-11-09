@@ -6062,7 +6062,8 @@ class BambuMQTTClient:
                 # First full status without "fun" — mark that probe is needed
                 self._dev_mode_needs_probe = True
             if self._dev_mode_needs_probe and time.monotonic() - self._connect_time >= 5.0:
-                self._probe_developer_mode()
+                if self.state.state not in ("RUNNING", "PAUSE", "PREPARE"):
+                    self._probe_developer_mode()
             elif self._dev_mode_needs_probe:
                 logger.debug(
                     "[%s] Deferring developer mode probe (%.1fs since connect, need 5s)",
@@ -6462,6 +6463,10 @@ class BambuMQTTClient:
                 )
             self._dev_mode_from_hms = True
             self.state.developer_mode = False
+            self._dev_mode_probe_seq = None
+            self._dev_mode_probe_failures = 0
+            self._dev_mode_probed = True
+            self._dev_mode_needs_probe = False
             return
 
         if not self._dev_mode_from_hms:
