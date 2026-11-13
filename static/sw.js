@@ -1,6 +1,6 @@
 // Bambuddy Service Worker
-const CACHE_NAME = 'bambuddy-v31';
-const STATIC_CACHE = 'bambuddy-static-v29';
+const CACHE_NAME = 'mirandaprint-v32';
+const STATIC_CACHE = 'mirandaprint-static-v30';
 
 // Static assets to cache on install
 const STATIC_ASSETS = [
@@ -11,6 +11,10 @@ const STATIC_ASSETS = [
   '/img/favicon-32x32.png',
   '/img/android-chrome-192x192.png',
   '/img/android-chrome-512x512.png',
+  '/img/mirandaprint-192x192.png',
+  '/img/mirandaprint-512x512.png',
+  '/img/mirandaprint-maskable-192x192.png',
+  '/img/mirandaprint-maskable-512x512.png',
   '/img/apple-touch-icon.png',
   '/img/bambuddy_logo_dark.png',
   // Self-hosted Inter font (#1460) - cached so the UI renders offline.
