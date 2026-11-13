@@ -8,7 +8,7 @@ from pydantic_settings import BaseSettings
 
 # Application version - single source of truth
 APP_VERSION = "1.3.0"
-GITHUB_REPO = "maziggy/bambuddy"
+GITHUB_REPO = "tylermiranda/bambuddy"
 BUG_REPORT_RELAY_URL = os.environ.get("BUG_REPORT_RELAY_URL", "https://bambuddy.cool/api/bug-report")
 
 # App directory - where the application is installed (for static files)
@@ -57,7 +57,7 @@ _db_path = _migrate_database() if not _external_db_url else None
 
 
 class Settings(BaseSettings):
-    app_name: str = "Bambuddy"
+    app_name: str = "MirandaPrint"
     debug: bool = False  # Default to production mode
 
     # Paths

@@ -628,7 +628,7 @@ export function Layout() {
           </button>
           <img
             src={resolvedMode === 'dark' ? '/img/bambuddy_logo_dark_transparent.png' : '/img/bambuddy_logo_light.png'}
-            alt="Bambuddy"
+            alt="MirandaPrint"
             className="h-8 ml-3"
           />
           {/* A camera from any page (#2737), beside the bug report. */}
@@ -669,7 +669,7 @@ export function Layout() {
         <div className={`border-b border-bambu-dark-tertiary flex items-center justify-center ${isSidebarCompact || sidebarExpanded ? 'p-4' : 'p-2'}`}>
           <img
             src={resolvedMode === 'dark' ? '/img/bambuddy_logo_dark_transparent.png' : '/img/bambuddy_logo_light.png'}
-            alt="Bambuddy"
+            alt="MirandaPrint"
             className={isSidebarCompact || sidebarExpanded ? 'h-16 w-auto' : 'h-8 w-8 object-cover object-left'}
           />
         </div>
@@ -891,7 +891,7 @@ export function Layout() {
                 )}
                 <InstallAppButton />
                 <a
-                  href="https://github.com/maziggy/bambuddy"
+                  href="https://github.com/tylermiranda/bambuddy"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="p-2 rounded-lg hover:bg-bambu-dark-tertiary transition-colors text-bambu-gray-light hover:text-white"
@@ -1013,7 +1013,7 @@ export function Layout() {
               )}
               <InstallAppButton />
               <a
-                href="https://github.com/maziggy/bambuddy"
+                href="https://github.com/tylermiranda/bambuddy"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-2 rounded-lg hover:bg-bambu-dark-tertiary transition-colors text-bambu-gray-light hover:text-white"
