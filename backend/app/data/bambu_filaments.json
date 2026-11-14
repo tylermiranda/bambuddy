@@ -1,0 +1,5517 @@
+{
+  "version": "1.0.0",
+  "filaments": [
+    {
+      "filament_code": "40100",
+      "filament_id": "GFB00",
+      "slicer_filament_name": "Bambu ABS",
+      "fila_type": "ABS",
+      "material": "ABS",
+      "subtype": null,
+      "color_name": "White",
+      "rgba": "FFFFFFFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "B00-W0",
+        "B00-W00"
+      ]
+    },
+    {
+      "filament_code": "40101",
+      "filament_id": "GFB00",
+      "slicer_filament_name": "Bambu ABS",
+      "fila_type": "ABS",
+      "material": "ABS",
+      "subtype": null,
+      "color_name": "Black",
+      "rgba": "000000FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "B00-K0",
+        "B00-K00"
+      ]
+    },
+    {
+      "filament_code": "40102",
+      "filament_id": "GFB00",
+      "slicer_filament_name": "Bambu ABS",
+      "fila_type": "ABS",
+      "material": "ABS",
+      "subtype": null,
+      "color_name": "Silver",
+      "rgba": "87909AFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "B00-D1",
+        "B00-D01"
+      ]
+    },
+    {
+      "filament_code": "40200",
+      "filament_id": "GFB00",
+      "slicer_filament_name": "Bambu ABS",
+      "fila_type": "ABS",
+      "material": "ABS",
+      "subtype": null,
+      "color_name": "Red",
+      "rgba": "D32941FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "B00-R0",
+        "B00-R00"
+      ]
+    },
+    {
+      "filament_code": "40300",
+      "filament_id": "GFB00",
+      "slicer_filament_name": "Bambu ABS",
+      "fila_type": "ABS",
+      "material": "ABS",
+      "subtype": null,
+      "color_name": "Orange",
+      "rgba": "FF6A13FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "B00-A0",
+        "B00-A00"
+      ]
+    },
+    {
+      "filament_code": "40400",
+      "filament_id": "GFB00",
+      "slicer_filament_name": "Bambu ABS",
+      "fila_type": "ABS",
+      "material": "ABS",
+      "subtype": null,
+      "color_name": "Yellow",
+      "rgba": "FCE900FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "B00-Y0",
+        "B00-Y00"
+      ]
+    },
+    {
+      "filament_code": "40401",
+      "filament_id": "GFB00",
+      "slicer_filament_name": "Bambu ABS",
+      "fila_type": "ABS",
+      "material": "ABS",
+      "subtype": null,
+      "color_name": "Beige",
+      "rgba": "DFD1A7FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "B00-Y2",
+        "B00-Y02"
+      ]
+    },
+    {
+      "filament_code": "40402",
+      "filament_id": "GFB00",
+      "slicer_filament_name": "Bambu ABS",
+      "fila_type": "ABS",
+      "material": "ABS",
+      "subtype": null,
+      "color_name": "Tangerine Yellow",
+      "rgba": "FFC72CFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "B00-Y1",
+        "B00-Y01"
+      ]
+    },
+    {
+      "filament_code": "40500",
+      "filament_id": "GFB00",
+      "slicer_filament_name": "Bambu ABS",
+      "fila_type": "ABS",
+      "material": "ABS",
+      "subtype": null,
+      "color_name": "Bambu Green",
+      "rgba": "00AE42FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "B00-G6",
+        "B00-G06"
+      ]
+    },
+    {
+      "filament_code": "40501",
+      "filament_id": "GFB00",
+      "slicer_filament_name": "Bambu ABS",
+      "fila_type": "ABS",
+      "material": "ABS",
+      "subtype": null,
+      "color_name": "Mint",
+      "rgba": "7AE1BFFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "B00-B8",
+        "B00-B08"
+      ]
+    },
+    {
+      "filament_code": "40502",
+      "filament_id": "GFB00",
+      "slicer_filament_name": "Bambu ABS",
+      "fila_type": "ABS",
+      "material": "ABS",
+      "subtype": null,
+      "color_name": "Olive",
+      "rgba": "789D4AFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "B00-G7",
+        "B00-G07"
+      ]
+    },
+    {
+      "filament_code": "40600",
+      "filament_id": "GFB00",
+      "slicer_filament_name": "Bambu ABS",
+      "fila_type": "ABS",
+      "material": "ABS",
+      "subtype": null,
+      "color_name": "Blue",
+      "rgba": "0A2CA5FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "B00-B0",
+        "B00-B00"
+      ]
+    },
+    {
+      "filament_code": "40601",
+      "filament_id": "GFB00",
+      "slicer_filament_name": "Bambu ABS",
+      "fila_type": "ABS",
+      "material": "ABS",
+      "subtype": null,
+      "color_name": "Azure",
+      "rgba": "489FDFFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "B00-B4",
+        "B00-B04"
+      ]
+    },
+    {
+      "filament_code": "40602",
+      "filament_id": "GFB00",
+      "slicer_filament_name": "Bambu ABS",
+      "fila_type": "ABS",
+      "material": "ABS",
+      "subtype": null,
+      "color_name": "Navy Blue",
+      "rgba": "0C2340FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "B00-B6",
+        "B00-B06"
+      ]
+    },
+    {
+      "filament_code": "40700",
+      "filament_id": "GFB00",
+      "slicer_filament_name": "Bambu ABS",
+      "fila_type": "ABS",
+      "material": "ABS",
+      "subtype": null,
+      "color_name": "Purple",
+      "rgba": "AF1685FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "B00-P6",
+        "B00-P06"
+      ]
+    },
+    {
+      "filament_code": "40701",
+      "filament_id": "GFB00",
+      "slicer_filament_name": "Bambu ABS",
+      "fila_type": "ABS",
+      "material": "ABS",
+      "subtype": null,
+      "color_name": "Lavender",
+      "rgba": "7248BDFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "B00-P4",
+        "B00-P04"
+      ]
+    },
+    {
+      "filament_code": "41100",
+      "filament_id": "GFB50",
+      "slicer_filament_name": "Bambu ABS-GF",
+      "fila_type": "ABS-GF",
+      "material": "ABS-GF",
+      "subtype": null,
+      "color_name": "White",
+      "rgba": "FFFFFFFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "B50-W0",
+        "B50-W00"
+      ]
+    },
+    {
+      "filament_code": "41101",
+      "filament_id": "GFB50",
+      "slicer_filament_name": "Bambu ABS-GF",
+      "fila_type": "ABS-GF",
+      "material": "ABS-GF",
+      "subtype": null,
+      "color_name": "Black",
+      "rgba": "000000FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "B50-K0",
+        "B50-K00"
+      ]
+    },
+    {
+      "filament_code": "41102",
+      "filament_id": "GFB50",
+      "slicer_filament_name": "Bambu ABS-GF",
+      "fila_type": "ABS-GF",
+      "material": "ABS-GF",
+      "subtype": null,
+      "color_name": "Gray",
+      "rgba": "C6C6C6FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "B50-D0",
+        "B50-D00"
+      ]
+    },
+    {
+      "filament_code": "41200",
+      "filament_id": "GFB50",
+      "slicer_filament_name": "Bambu ABS-GF",
+      "fila_type": "ABS-GF",
+      "material": "ABS-GF",
+      "subtype": null,
+      "color_name": "Red",
+      "rgba": "E83100FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "B50-R0",
+        "B50-R00"
+      ]
+    },
+    {
+      "filament_code": "41300",
+      "filament_id": "GFB50",
+      "slicer_filament_name": "Bambu ABS-GF",
+      "fila_type": "ABS-GF",
+      "material": "ABS-GF",
+      "subtype": null,
+      "color_name": "Orange",
+      "rgba": "F48438FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "B50-A0",
+        "B50-A00"
+      ]
+    },
+    {
+      "filament_code": "41400",
+      "filament_id": "GFB50",
+      "slicer_filament_name": "Bambu ABS-GF",
+      "fila_type": "ABS-GF",
+      "material": "ABS-GF",
+      "subtype": null,
+      "color_name": "Yellow",
+      "rgba": "FFE133FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "B50-Y0",
+        "B50-Y00"
+      ]
+    },
+    {
+      "filament_code": "41500",
+      "filament_id": "GFB50",
+      "slicer_filament_name": "Bambu ABS-GF",
+      "fila_type": "ABS-GF",
+      "material": "ABS-GF",
+      "subtype": null,
+      "color_name": "Green",
+      "rgba": "61BF36FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "B50-G0",
+        "B50-G00"
+      ]
+    },
+    {
+      "filament_code": "41600",
+      "filament_id": "GFB50",
+      "slicer_filament_name": "Bambu ABS-GF",
+      "fila_type": "ABS-GF",
+      "material": "ABS-GF",
+      "subtype": null,
+      "color_name": "Blue",
+      "rgba": "0C3B95FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "B50-B0",
+        "B50-B00"
+      ]
+    },
+    {
+      "filament_code": "45100",
+      "filament_id": "GFB01",
+      "slicer_filament_name": "Bambu ASA",
+      "fila_type": "ASA",
+      "material": "ASA",
+      "subtype": null,
+      "color_name": "White",
+      "rgba": "FFFAF2FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "B01-W0",
+        "B01-W00"
+      ]
+    },
+    {
+      "filament_code": "45101",
+      "filament_id": "GFB01",
+      "slicer_filament_name": "Bambu ASA",
+      "fila_type": "ASA",
+      "material": "ASA",
+      "subtype": null,
+      "color_name": "Black",
+      "rgba": "000000FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "B01-K0",
+        "B01-K00"
+      ]
+    },
+    {
+      "filament_code": "45102",
+      "filament_id": "GFB01",
+      "slicer_filament_name": "Bambu ASA",
+      "fila_type": "ASA",
+      "material": "ASA",
+      "subtype": null,
+      "color_name": "Gray",
+      "rgba": "8A949EFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "B01-D0",
+        "B01-D00"
+      ]
+    },
+    {
+      "filament_code": "45200",
+      "filament_id": "GFB01",
+      "slicer_filament_name": "Bambu ASA",
+      "fila_type": "ASA",
+      "material": "ASA",
+      "subtype": null,
+      "color_name": "Red",
+      "rgba": "E02928FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "B01-R0",
+        "B01-R00"
+      ]
+    },
+    {
+      "filament_code": "45500",
+      "filament_id": "GFB01",
+      "slicer_filament_name": "Bambu ASA",
+      "fila_type": "ASA",
+      "material": "ASA",
+      "subtype": null,
+      "color_name": "Green",
+      "rgba": "00A6A0FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "B01-G0",
+        "B01-G00"
+      ]
+    },
+    {
+      "filament_code": "45600",
+      "filament_id": "GFB01",
+      "slicer_filament_name": "Bambu ASA",
+      "fila_type": "ASA",
+      "material": "ASA",
+      "subtype": null,
+      "color_name": "Blue",
+      "rgba": "2140B4FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "B01-B0",
+        "B01-B00"
+      ]
+    },
+    {
+      "filament_code": "46100",
+      "filament_id": "GFB02",
+      "slicer_filament_name": "Bambu ASA-Aero",
+      "fila_type": "ASA Aero",
+      "material": "ASA",
+      "subtype": "Aero",
+      "color_name": "White",
+      "rgba": "F5F1DDFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "B02-W0",
+        "B02-W00"
+      ]
+    },
+    {
+      "filament_code": "46101",
+      "filament_id": "GFB51",
+      "slicer_filament_name": "Bambu ASA-CF",
+      "fila_type": "ASA-CF",
+      "material": "ASA-CF",
+      "subtype": null,
+      "color_name": "Black",
+      "rgba": "000000FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "B51-K0",
+        "B51-K00"
+      ]
+    },
+    {
+      "filament_code": "72100",
+      "filament_id": "GFN05",
+      "slicer_filament_name": "Bambu PA6-CF",
+      "fila_type": "PA6-CF",
+      "material": "PA6-CF",
+      "subtype": null,
+      "color_name": "Black",
+      "rgba": "000000FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "N05-K0",
+        "N05-K00"
+      ]
+    },
+    {
+      "filament_code": "72102",
+      "filament_id": "GFN08",
+      "slicer_filament_name": "Bambu PA6-GF",
+      "fila_type": "PA6-GF",
+      "material": "PA6-GF",
+      "subtype": null,
+      "color_name": "White",
+      "rgba": "EAEAE4FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "N08-D0",
+        "N08-D00"
+      ]
+    },
+    {
+      "filament_code": "72103",
+      "filament_id": "GFN08",
+      "slicer_filament_name": "Bambu PA6-GF",
+      "fila_type": "PA6-GF",
+      "material": "PA6-GF",
+      "subtype": null,
+      "color_name": "Gray",
+      "rgba": "353533FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "N08-D1",
+        "N08-D01"
+      ]
+    },
+    {
+      "filament_code": "72104",
+      "filament_id": "GFN08",
+      "slicer_filament_name": "Bambu PA6-GF",
+      "fila_type": "PA6-GF",
+      "material": "PA6-GF",
+      "subtype": null,
+      "color_name": "Black",
+      "rgba": "000000FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "N08-K0",
+        "N08-K00"
+      ]
+    },
+    {
+      "filament_code": "72200",
+      "filament_id": "GFN08",
+      "slicer_filament_name": "Bambu PA6-GF",
+      "fila_type": "PA6-GF",
+      "material": "PA6-GF",
+      "subtype": null,
+      "color_name": "Orange",
+      "rgba": "FF4800FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "N08-R0",
+        "N08-R00"
+      ]
+    },
+    {
+      "filament_code": "72400",
+      "filament_id": "GFN08",
+      "slicer_filament_name": "Bambu PA6-GF",
+      "fila_type": "PA6-GF",
+      "material": "PA6-GF",
+      "subtype": null,
+      "color_name": "Yellow",
+      "rgba": "FFCE00FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "N08-Y0",
+        "N08-Y00"
+      ]
+    },
+    {
+      "filament_code": "72500",
+      "filament_id": "GFN08",
+      "slicer_filament_name": "Bambu PA6-GF",
+      "fila_type": "PA6-GF",
+      "material": "PA6-GF",
+      "subtype": null,
+      "color_name": "Lime",
+      "rgba": "C5ED48FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "N08-G0",
+        "N08-G00"
+      ]
+    },
+    {
+      "filament_code": "72600",
+      "filament_id": "GFN08",
+      "slicer_filament_name": "Bambu PA6-GF",
+      "fila_type": "PA6-GF",
+      "material": "PA6-GF",
+      "subtype": null,
+      "color_name": "Blue",
+      "rgba": "75AED8FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "N08-B0",
+        "N08-B00"
+      ]
+    },
+    {
+      "filament_code": "72800",
+      "filament_id": "GFN08",
+      "slicer_filament_name": "Bambu PA6-GF",
+      "fila_type": "PA6-GF",
+      "material": "PA6-GF",
+      "subtype": null,
+      "color_name": "Brown",
+      "rgba": "5B492FFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "N08-N0",
+        "N08-N00"
+      ]
+    },
+    {
+      "filament_code": "70100",
+      "filament_id": "GFN04",
+      "slicer_filament_name": "Bambu PAHT-CF",
+      "fila_type": "PAHT-CF",
+      "material": "PAHT-CF",
+      "subtype": null,
+      "color_name": "Black",
+      "rgba": "000000FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "N04-K0",
+        "N04-K00"
+      ]
+    },
+    {
+      "filament_code": "60100",
+      "filament_id": "GFC00",
+      "slicer_filament_name": "Bambu PC",
+      "fila_type": "PC",
+      "material": "PC",
+      "subtype": null,
+      "color_name": "White",
+      "rgba": "FFFFFFFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "C00-W0",
+        "C00-W00"
+      ]
+    },
+    {
+      "filament_code": "60101",
+      "filament_id": "GFC00",
+      "slicer_filament_name": "Bambu PC",
+      "fila_type": "PC",
+      "material": "PC",
+      "subtype": null,
+      "color_name": "Black",
+      "rgba": "000000FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "C00-K0",
+        "C00-K00"
+      ]
+    },
+    {
+      "filament_code": "60102",
+      "filament_id": "GFC00",
+      "slicer_filament_name": "Bambu PC",
+      "fila_type": "PC",
+      "material": "PC",
+      "subtype": null,
+      "color_name": "Clear Black",
+      "rgba": "68686580",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "C00-C0",
+        "C00-C00",
+        "C00-C1"
+      ]
+    },
+    {
+      "filament_code": "60103",
+      "filament_id": "GFC00",
+      "slicer_filament_name": "Bambu PC",
+      "fila_type": "PC",
+      "material": "PC",
+      "subtype": null,
+      "color_name": "Transparent",
+      "rgba": "00000000",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "C00-C1",
+        "C00-C01"
+      ]
+    },
+    {
+      "filament_code": "63100",
+      "filament_id": "GFC01",
+      "slicer_filament_name": "Bambu PC FR",
+      "fila_type": "PC FR",
+      "material": "PC",
+      "subtype": "FR",
+      "color_name": "Black",
+      "rgba": "000000FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "C01-K0",
+        "C01-K00"
+      ]
+    },
+    {
+      "filament_code": "63101",
+      "filament_id": "GFC01",
+      "slicer_filament_name": "Bambu PC FR",
+      "fila_type": "PC FR",
+      "material": "PC",
+      "subtype": "FR",
+      "color_name": "White",
+      "rgba": "FFFFFFFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "C01-W0",
+        "C01-W00"
+      ]
+    },
+    {
+      "filament_code": "63102",
+      "filament_id": "GFC01",
+      "slicer_filament_name": "Bambu PC FR",
+      "fila_type": "PC FR",
+      "material": "PC",
+      "subtype": "FR",
+      "color_name": "Gray",
+      "rgba": "A8A8AAFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "C01-D0",
+        "C01-D00"
+      ]
+    },
+    {
+      "filament_code": "71100",
+      "filament_id": "GFT01",
+      "slicer_filament_name": "Bambu PET-CF",
+      "fila_type": "PET-CF",
+      "material": "PET-CF",
+      "subtype": null,
+      "color_name": "Black",
+      "rgba": "000000FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "T01-K0",
+        "T01-K00"
+      ]
+    },
+    {
+      "filament_code": "30103",
+      "filament_id": "GFG00",
+      "slicer_filament_name": "Bambu PETG Basic",
+      "fila_type": "PETG Basic",
+      "material": "PETG",
+      "subtype": "Basic",
+      "color_name": "Clear",
+      "rgba": "00000000",
+      "extra_colors": null,
+      "effect_type": "translucent",
+      "variant_ids": [
+        "G00-C1",
+        "G00-C01"
+      ]
+    },
+    {
+      "filament_code": "30105",
+      "filament_id": "GFG00",
+      "slicer_filament_name": "Bambu PETG Basic",
+      "fila_type": "PETG Basic",
+      "material": "PETG",
+      "subtype": "Basic",
+      "color_name": "Black",
+      "rgba": "000000FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G00-K00",
+        "G00-K0",
+        "G02-K0"
+      ]
+    },
+    {
+      "filament_code": "30106",
+      "filament_id": "GFG00",
+      "slicer_filament_name": "Bambu PETG Basic",
+      "fila_type": "PETG Basic",
+      "material": "PETG",
+      "subtype": "Basic",
+      "color_name": "White",
+      "rgba": "FFFFFFFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G00-W00",
+        "G00-W0"
+      ]
+    },
+    {
+      "filament_code": "30107",
+      "filament_id": "GFG00",
+      "slicer_filament_name": "Bambu PETG Basic",
+      "fila_type": "PETG Basic",
+      "material": "PETG",
+      "subtype": "Basic",
+      "color_name": "Gray",
+      "rgba": "7F7E83FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G00-D00",
+        "G00-D0"
+      ]
+    },
+    {
+      "filament_code": "30108",
+      "filament_id": "GFG00",
+      "slicer_filament_name": "Bambu PETG Basic",
+      "fila_type": "PETG Basic",
+      "material": "PETG",
+      "subtype": "Basic",
+      "color_name": "Misty Blue",
+      "rgba": "688197FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G00-D01"
+      ]
+    },
+    {
+      "filament_code": "30201",
+      "filament_id": "GFG00",
+      "slicer_filament_name": "Bambu PETG Basic",
+      "fila_type": "PETG Basic",
+      "material": "PETG",
+      "subtype": "Basic",
+      "color_name": "Red",
+      "rgba": "D6001CFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G00-R00",
+        "G00-R0"
+      ]
+    },
+    {
+      "filament_code": "30301",
+      "filament_id": "GFG00",
+      "slicer_filament_name": "Bambu PETG Basic",
+      "fila_type": "PETG Basic",
+      "material": "PETG",
+      "subtype": "Basic",
+      "color_name": "Orange",
+      "rgba": "FF671FFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G00-A00"
+      ]
+    },
+    {
+      "filament_code": "30402",
+      "filament_id": "GFG00",
+      "slicer_filament_name": "Bambu PETG Basic",
+      "fila_type": "PETG Basic",
+      "material": "PETG",
+      "subtype": "Basic",
+      "color_name": "Yellow",
+      "rgba": "FCE300FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G00-Y00",
+        "G00-Y0"
+      ]
+    },
+    {
+      "filament_code": "30403",
+      "filament_id": "GFG00",
+      "slicer_filament_name": "Bambu PETG Basic",
+      "fila_type": "PETG Basic",
+      "material": "PETG",
+      "subtype": "Basic",
+      "color_name": "Dark Beige",
+      "rgba": "DBC8B6FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G00-Y01"
+      ]
+    },
+    {
+      "filament_code": "30404",
+      "filament_id": "GFG00",
+      "slicer_filament_name": "Bambu PETG Basic",
+      "fila_type": "PETG Basic",
+      "material": "PETG",
+      "subtype": "Basic",
+      "color_name": "Sunflower Yellow",
+      "rgba": "FFB81CFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G00-Y04",
+        "G00-G8"
+      ]
+    },
+    {
+      "filament_code": "30502",
+      "filament_id": "GFG00",
+      "slicer_filament_name": "Bambu PETG Basic",
+      "fila_type": "PETG Basic",
+      "material": "PETG",
+      "subtype": "Basic",
+      "color_name": "Green",
+      "rgba": "009639FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G00-G00"
+      ]
+    },
+    {
+      "filament_code": "30503",
+      "filament_id": "GFG00",
+      "slicer_filament_name": "Bambu PETG Basic",
+      "fila_type": "PETG Basic",
+      "material": "PETG",
+      "subtype": "Basic",
+      "color_name": "Pine Green",
+      "rgba": "034638FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G00-G01"
+      ]
+    },
+    {
+      "filament_code": "30504",
+      "filament_id": "GFG00",
+      "slicer_filament_name": "Bambu PETG Basic",
+      "fila_type": "PETG Basic",
+      "material": "PETG",
+      "subtype": "Basic",
+      "color_name": "Bright Green",
+      "rgba": "97D700FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G00-G04"
+      ]
+    },
+    {
+      "filament_code": "30603",
+      "filament_id": "GFG00",
+      "slicer_filament_name": "Bambu PETG Basic",
+      "fila_type": "PETG Basic",
+      "material": "PETG",
+      "subtype": "Basic",
+      "color_name": "Reflex Blue",
+      "rgba": "001489FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G00-B00"
+      ]
+    },
+    {
+      "filament_code": "30604",
+      "filament_id": "GFG00",
+      "slicer_filament_name": "Bambu PETG Basic",
+      "fila_type": "PETG Basic",
+      "material": "PETG",
+      "subtype": "Basic",
+      "color_name": "Navy Blue",
+      "rgba": "0086D6FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G00-B01"
+      ]
+    },
+    {
+      "filament_code": "30701",
+      "filament_id": "GFG00",
+      "slicer_filament_name": "Bambu PETG Basic",
+      "fila_type": "PETG Basic",
+      "material": "PETG",
+      "subtype": "Basic",
+      "color_name": "Purple",
+      "rgba": "8A75D1FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G00-P01"
+      ]
+    },
+    {
+      "filament_code": "30702",
+      "filament_id": "GFG00",
+      "slicer_filament_name": "Bambu PETG Basic",
+      "fila_type": "PETG Basic",
+      "material": "PETG",
+      "subtype": "Basic",
+      "color_name": "Hot Pink",
+      "rgba": "F277C6FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G00-P02"
+      ]
+    },
+    {
+      "filament_code": "30800",
+      "filament_id": "GFG00",
+      "slicer_filament_name": "Bambu PETG Basic",
+      "fila_type": "PETG Basic",
+      "material": "PETG",
+      "subtype": "Basic",
+      "color_name": "Dark Brown",
+      "rgba": "4F2C1DFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G00-N00"
+      ]
+    },
+    {
+      "filament_code": "33100",
+      "filament_id": "GFG02",
+      "slicer_filament_name": "Bambu PETG HF",
+      "fila_type": "PETG HF",
+      "material": "PETG",
+      "subtype": "HF",
+      "color_name": "White",
+      "rgba": "FFFFFFFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G02-W0",
+        "G02-W00"
+      ]
+    },
+    {
+      "filament_code": "33101",
+      "filament_id": "GFG02",
+      "slicer_filament_name": "Bambu PETG HF",
+      "fila_type": "PETG HF",
+      "material": "PETG",
+      "subtype": "HF",
+      "color_name": "Gray",
+      "rgba": "ADB1B2FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G02-D0",
+        "G02-D00"
+      ]
+    },
+    {
+      "filament_code": "33102",
+      "filament_id": "GFG02",
+      "slicer_filament_name": "Bambu PETG HF",
+      "fila_type": "PETG HF",
+      "material": "PETG",
+      "subtype": "HF",
+      "color_name": "Black",
+      "rgba": "000000FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G02-K0",
+        "G02-K00"
+      ]
+    },
+    {
+      "filament_code": "33103",
+      "filament_id": "GFG02",
+      "slicer_filament_name": "Bambu PETG HF",
+      "fila_type": "PETG HF",
+      "material": "PETG",
+      "subtype": "HF",
+      "color_name": "Dark Gray",
+      "rgba": "515151FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G02-D1",
+        "G02-D01"
+      ]
+    },
+    {
+      "filament_code": "33200",
+      "filament_id": "GFG02",
+      "slicer_filament_name": "Bambu PETG HF",
+      "fila_type": "PETG HF",
+      "material": "PETG",
+      "subtype": "HF",
+      "color_name": "Red",
+      "rgba": "BC0900FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G02-R0",
+        "G02-R00"
+      ]
+    },
+    {
+      "filament_code": "33300",
+      "filament_id": "GFG02",
+      "slicer_filament_name": "Bambu PETG HF",
+      "fila_type": "PETG HF",
+      "material": "PETG",
+      "subtype": "HF",
+      "color_name": "Orange",
+      "rgba": "F75403FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G02-A0",
+        "G02-A00"
+      ]
+    },
+    {
+      "filament_code": "33400",
+      "filament_id": "GFG02",
+      "slicer_filament_name": "Bambu PETG HF",
+      "fila_type": "PETG HF",
+      "material": "PETG",
+      "subtype": "HF",
+      "color_name": "Yellow",
+      "rgba": "FFD00BFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G02-Y0",
+        "G02-Y00"
+      ]
+    },
+    {
+      "filament_code": "33401",
+      "filament_id": "GFG02",
+      "slicer_filament_name": "Bambu PETG HF",
+      "fila_type": "PETG HF",
+      "material": "PETG",
+      "subtype": "HF",
+      "color_name": "Cream",
+      "rgba": "F9DFB9FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G02-Y1",
+        "G02-Y01"
+      ]
+    },
+    {
+      "filament_code": "33500",
+      "filament_id": "GFG02",
+      "slicer_filament_name": "Bambu PETG HF",
+      "fila_type": "PETG HF",
+      "material": "PETG",
+      "subtype": "HF",
+      "color_name": "Green",
+      "rgba": "00AE42FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G02-G0",
+        "G02-G00"
+      ]
+    },
+    {
+      "filament_code": "33501",
+      "filament_id": "GFG02",
+      "slicer_filament_name": "Bambu PETG HF",
+      "fila_type": "PETG HF",
+      "material": "PETG",
+      "subtype": "HF",
+      "color_name": "Lime Green",
+      "rgba": "6EE53CFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G02-G1",
+        "G02-G01"
+      ]
+    },
+    {
+      "filament_code": "33502",
+      "filament_id": "GFG02",
+      "slicer_filament_name": "Bambu PETG HF",
+      "fila_type": "PETG HF",
+      "material": "PETG",
+      "subtype": "HF",
+      "color_name": "Forest Green",
+      "rgba": "39541AFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G02-G2",
+        "G02-G02"
+      ]
+    },
+    {
+      "filament_code": "33600",
+      "filament_id": "GFG02",
+      "slicer_filament_name": "Bambu PETG HF",
+      "fila_type": "PETG HF",
+      "material": "PETG",
+      "subtype": "HF",
+      "color_name": "Blue",
+      "rgba": "002E96FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G02-B0",
+        "G02-B00"
+      ]
+    },
+    {
+      "filament_code": "33601",
+      "filament_id": "GFG02",
+      "slicer_filament_name": "Bambu PETG HF",
+      "fila_type": "PETG HF",
+      "material": "PETG",
+      "subtype": "HF",
+      "color_name": "Lake Blue",
+      "rgba": "1F79E5FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G02-B1",
+        "G02-B01"
+      ]
+    },
+    {
+      "filament_code": "33801",
+      "filament_id": "GFG02",
+      "slicer_filament_name": "Bambu PETG HF",
+      "fila_type": "PETG HF",
+      "material": "PETG",
+      "subtype": "HF",
+      "color_name": "Peanut Brown",
+      "rgba": "875718FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G02-N1",
+        "G02-N01"
+      ]
+    },
+    {
+      "filament_code": "35100",
+      "filament_id": "GFG03",
+      "slicer_filament_name": "Bambu PETG Matte",
+      "fila_type": "PETG Matte",
+      "material": "PETG",
+      "subtype": "Matte",
+      "color_name": "White",
+      "rgba": "FFFFFFFF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "G03-W00"
+      ]
+    },
+    {
+      "filament_code": "35101",
+      "filament_id": "GFG03",
+      "slicer_filament_name": "Bambu PETG Matte",
+      "fila_type": "PETG Matte",
+      "material": "PETG",
+      "subtype": "Matte",
+      "color_name": "Black",
+      "rgba": "000000FF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "G03-K00"
+      ]
+    },
+    {
+      "filament_code": "35102",
+      "filament_id": "GFG03",
+      "slicer_filament_name": "Bambu PETG Matte",
+      "fila_type": "PETG Matte",
+      "material": "PETG",
+      "subtype": "Matte",
+      "color_name": "Gray",
+      "rgba": "7F7E83FF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "G03-D00"
+      ]
+    },
+    {
+      "filament_code": "35200",
+      "filament_id": "GFG03",
+      "slicer_filament_name": "Bambu PETG Matte",
+      "fila_type": "PETG Matte",
+      "material": "PETG",
+      "subtype": "Matte",
+      "color_name": "Red",
+      "rgba": "D6001CFF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "G03-R00"
+      ]
+    },
+    {
+      "filament_code": "35300",
+      "filament_id": "GFG03",
+      "slicer_filament_name": "Bambu PETG Matte",
+      "fila_type": "PETG Matte",
+      "material": "PETG",
+      "subtype": "Matte",
+      "color_name": "Orange",
+      "rgba": "FF671FFF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "G03-A00"
+      ]
+    },
+    {
+      "filament_code": "35400",
+      "filament_id": "GFG03",
+      "slicer_filament_name": "Bambu PETG Matte",
+      "fila_type": "PETG Matte",
+      "material": "PETG",
+      "subtype": "Matte",
+      "color_name": "Yellow",
+      "rgba": "FFD100FF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "G03-Y00"
+      ]
+    },
+    {
+      "filament_code": "35500",
+      "filament_id": "GFG03",
+      "slicer_filament_name": "Bambu PETG Matte",
+      "fila_type": "PETG Matte",
+      "material": "PETG",
+      "subtype": "Matte",
+      "color_name": "Lime",
+      "rgba": "C0DF16FF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "G03-G00"
+      ]
+    },
+    {
+      "filament_code": "35501",
+      "filament_id": "GFG03",
+      "slicer_filament_name": "Bambu PETG Matte",
+      "fila_type": "PETG Matte",
+      "material": "PETG",
+      "subtype": "Matte",
+      "color_name": "Avocado Green",
+      "rgba": "BCE194FF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "G03-G01"
+      ]
+    },
+    {
+      "filament_code": "35600",
+      "filament_id": "GFG03",
+      "slicer_filament_name": "Bambu PETG Matte",
+      "fila_type": "PETG Matte",
+      "material": "PETG",
+      "subtype": "Matte",
+      "color_name": "Baby Blue",
+      "rgba": "B9D9EBFF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "G03-B00"
+      ]
+    },
+    {
+      "filament_code": "35601",
+      "filament_id": "GFG03",
+      "slicer_filament_name": "Bambu PETG Matte",
+      "fila_type": "PETG Matte",
+      "material": "PETG",
+      "subtype": "Matte",
+      "color_name": "Cyan",
+      "rgba": "00A9E0FF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "G03-B01"
+      ]
+    },
+    {
+      "filament_code": "35602",
+      "filament_id": "GFG03",
+      "slicer_filament_name": "Bambu PETG Matte",
+      "fila_type": "PETG Matte",
+      "material": "PETG",
+      "subtype": "Matte",
+      "color_name": "Dark Blue",
+      "rgba": "003087FF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "G03-B02"
+      ]
+    },
+    {
+      "filament_code": "35603",
+      "filament_id": "GFG03",
+      "slicer_filament_name": "Bambu PETG Matte",
+      "fila_type": "PETG Matte",
+      "material": "PETG",
+      "subtype": "Matte",
+      "color_name": "Turquoise",
+      "rgba": "00C7B1FF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "G03-B03"
+      ]
+    },
+    {
+      "filament_code": "35700",
+      "filament_id": "GFG03",
+      "slicer_filament_name": "Bambu PETG Matte",
+      "fila_type": "PETG Matte",
+      "material": "PETG",
+      "subtype": "Matte",
+      "color_name": "Pink",
+      "rgba": "FABBCBFF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "G03-P00"
+      ]
+    },
+    {
+      "filament_code": "35701",
+      "filament_id": "GFG03",
+      "slicer_filament_name": "Bambu PETG Matte",
+      "fila_type": "PETG Matte",
+      "material": "PETG",
+      "subtype": "Matte",
+      "color_name": "Rose Beige",
+      "rgba": "F0BDA5FF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "G03-P01"
+      ]
+    },
+    {
+      "filament_code": "35702",
+      "filament_id": "GFG03",
+      "slicer_filament_name": "Bambu PETG Matte",
+      "fila_type": "PETG Matte",
+      "material": "PETG",
+      "subtype": "Matte",
+      "color_name": "Violet",
+      "rgba": "A7A4E0FF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "G03-P02"
+      ]
+    },
+    {
+      "filament_code": "35703",
+      "filament_id": "GFG03",
+      "slicer_filament_name": "Bambu PETG Matte",
+      "fila_type": "PETG Matte",
+      "material": "PETG",
+      "subtype": "Matte",
+      "color_name": "Hot Pink",
+      "rgba": "EF4A81FF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "G03-P03"
+      ]
+    },
+    {
+      "filament_code": "35801",
+      "filament_id": "GFG03",
+      "slicer_filament_name": "Bambu PETG Matte",
+      "fila_type": "PETG Matte",
+      "material": "PETG",
+      "subtype": "Matte",
+      "color_name": "Caramel",
+      "rgba": "BF9474FF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "G03-N01"
+      ]
+    },
+    {
+      "filament_code": "32100",
+      "filament_id": "GFG01",
+      "slicer_filament_name": "Bambu PETG Translucent",
+      "fila_type": "PETG Translucent",
+      "material": "PETG",
+      "subtype": "Translucent",
+      "color_name": "Translucent Gray",
+      "rgba": "8E8E8E80",
+      "extra_colors": null,
+      "effect_type": "translucent",
+      "variant_ids": [
+        "G01-D0",
+        "G01-D00"
+      ]
+    },
+    {
+      "filament_code": "32101",
+      "filament_id": "GFG01",
+      "slicer_filament_name": "Bambu PETG Translucent",
+      "fila_type": "PETG Translucent",
+      "material": "PETG",
+      "subtype": "Translucent",
+      "color_name": "Clear",
+      "rgba": "00000000",
+      "extra_colors": null,
+      "effect_type": "translucent",
+      "variant_ids": [
+        "G01-C0",
+        "G01-C00"
+      ]
+    },
+    {
+      "filament_code": "32200",
+      "filament_id": "GFG01",
+      "slicer_filament_name": "Bambu PETG Translucent",
+      "fila_type": "PETG Translucent",
+      "material": "PETG",
+      "subtype": "Translucent",
+      "color_name": "Translucent Pink",
+      "rgba": "F9C1BD80",
+      "extra_colors": null,
+      "effect_type": "translucent",
+      "variant_ids": [
+        "G01-P1",
+        "G01-P01"
+      ]
+    },
+    {
+      "filament_code": "32300",
+      "filament_id": "GFG01",
+      "slicer_filament_name": "Bambu PETG Translucent",
+      "fila_type": "PETG Translucent",
+      "material": "PETG",
+      "subtype": "Translucent",
+      "color_name": "Translucent Orange",
+      "rgba": "FF911A80",
+      "extra_colors": null,
+      "effect_type": "translucent",
+      "variant_ids": [
+        "G01-A0",
+        "G01-A00",
+        "G02-A0"
+      ]
+    },
+    {
+      "filament_code": "32500",
+      "filament_id": "GFG01",
+      "slicer_filament_name": "Bambu PETG Translucent",
+      "fila_type": "PETG Translucent",
+      "material": "PETG",
+      "subtype": "Translucent",
+      "color_name": "Translucent Olive",
+      "rgba": "748C4580",
+      "extra_colors": null,
+      "effect_type": "translucent",
+      "variant_ids": [
+        "G01-G0",
+        "G01-G00"
+      ]
+    },
+    {
+      "filament_code": "32501",
+      "filament_id": "GFG01",
+      "slicer_filament_name": "Bambu PETG Translucent",
+      "fila_type": "PETG Translucent",
+      "material": "PETG",
+      "subtype": "Translucent",
+      "color_name": "Translucent Teal",
+      "rgba": "77EDD780",
+      "extra_colors": null,
+      "effect_type": "translucent",
+      "variant_ids": [
+        "G01-G1",
+        "G01-G01"
+      ]
+    },
+    {
+      "filament_code": "32600",
+      "filament_id": "GFG01",
+      "slicer_filament_name": "Bambu PETG Translucent",
+      "fila_type": "PETG Translucent",
+      "material": "PETG",
+      "subtype": "Translucent",
+      "color_name": "Translucent Light Blue",
+      "rgba": "61B0FF80",
+      "extra_colors": null,
+      "effect_type": "translucent",
+      "variant_ids": [
+        "G01-B0",
+        "G01-B00"
+      ]
+    },
+    {
+      "filament_code": "32700",
+      "filament_id": "GFG01",
+      "slicer_filament_name": "Bambu PETG Translucent",
+      "fila_type": "PETG Translucent",
+      "material": "PETG",
+      "subtype": "Translucent",
+      "color_name": "Translucent Purple",
+      "rgba": "D6ABFF80",
+      "extra_colors": null,
+      "effect_type": "translucent",
+      "variant_ids": [
+        "G01-P0",
+        "G01-P00"
+      ]
+    },
+    {
+      "filament_code": "32800",
+      "filament_id": "GFG01",
+      "slicer_filament_name": "Bambu PETG Translucent",
+      "fila_type": "PETG Translucent",
+      "material": "PETG",
+      "subtype": "Translucent",
+      "color_name": "Translucent Brown",
+      "rgba": "C9A38180",
+      "extra_colors": null,
+      "effect_type": "translucent",
+      "variant_ids": [
+        "G01-N0",
+        "G01-N00"
+      ]
+    },
+    {
+      "filament_code": "31100",
+      "filament_id": "GFG50",
+      "slicer_filament_name": "Bambu PETG-CF",
+      "fila_type": "PETG-CF",
+      "material": "PETG-CF",
+      "subtype": null,
+      "color_name": "Black",
+      "rgba": "000000FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G50-K0",
+        "G50-K00"
+      ]
+    },
+    {
+      "filament_code": "31101",
+      "filament_id": "GFG50",
+      "slicer_filament_name": "Bambu PETG-CF",
+      "fila_type": "PETG-CF",
+      "material": "PETG-CF",
+      "subtype": null,
+      "color_name": "Titan Gray",
+      "rgba": "565656FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G50-D6",
+        "G50-D06"
+      ]
+    },
+    {
+      "filament_code": "31200",
+      "filament_id": "GFG50",
+      "slicer_filament_name": "Bambu PETG-CF",
+      "fila_type": "PETG-CF",
+      "material": "PETG-CF",
+      "subtype": null,
+      "color_name": "Brick Red",
+      "rgba": "9F332AFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G50-R4",
+        "G50-R04"
+      ]
+    },
+    {
+      "filament_code": "31500",
+      "filament_id": "GFG50",
+      "slicer_filament_name": "Bambu PETG-CF",
+      "fila_type": "PETG-CF",
+      "material": "PETG-CF",
+      "subtype": null,
+      "color_name": "Malachite Green",
+      "rgba": "16B08EFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G50-G7",
+        "G50-G07"
+      ]
+    },
+    {
+      "filament_code": "31600",
+      "filament_id": "GFG50",
+      "slicer_filament_name": "Bambu PETG-CF",
+      "fila_type": "PETG-CF",
+      "material": "PETG-CF",
+      "subtype": null,
+      "color_name": "Indigo Blue",
+      "rgba": "324585FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G50-B6",
+        "G50-B06"
+      ]
+    },
+    {
+      "filament_code": "31700",
+      "filament_id": "GFG50",
+      "slicer_filament_name": "Bambu PETG-CF",
+      "fila_type": "PETG-CF",
+      "material": "PETG-CF",
+      "subtype": null,
+      "color_name": "Violet Purple",
+      "rgba": "583061FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "G50-P7",
+        "G50-P07"
+      ]
+    },
+    {
+      "filament_code": "14102",
+      "filament_id": "GFA11",
+      "slicer_filament_name": "Bambu PLA Aero",
+      "fila_type": "PLA Aero",
+      "material": "PLA",
+      "subtype": "Aero",
+      "color_name": "White",
+      "rgba": "FFFFFFFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A11-W0",
+        "A11-W00"
+      ]
+    },
+    {
+      "filament_code": "14103",
+      "filament_id": "GFA11",
+      "slicer_filament_name": "Bambu PLA Aero",
+      "fila_type": "PLA Aero",
+      "material": "PLA",
+      "subtype": "Aero",
+      "color_name": "Black",
+      "rgba": "000000FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A11-K0",
+        "A11-K00"
+      ]
+    },
+    {
+      "filament_code": "14104",
+      "filament_id": "GFA11",
+      "slicer_filament_name": "Bambu PLA Aero",
+      "fila_type": "PLA Aero",
+      "material": "PLA",
+      "subtype": "Aero",
+      "color_name": "Gray",
+      "rgba": "CDCECAFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A11-D0",
+        "A11-D00"
+      ]
+    },
+    {
+      "filament_code": "10100",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Basic",
+      "color_name": "Jade White",
+      "rgba": "FFFFFFFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A00-W1",
+        "A00-W01",
+        "A00-W0",
+        "A00-W00"
+      ]
+    },
+    {
+      "filament_code": "10101",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Basic",
+      "color_name": "Black",
+      "rgba": "000000FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A00-K0",
+        "A00-K00"
+      ]
+    },
+    {
+      "filament_code": "10102",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Basic",
+      "color_name": "Silver",
+      "rgba": "A6A9AAFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A00-D1",
+        "A00-D01"
+      ]
+    },
+    {
+      "filament_code": "10103",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Basic",
+      "color_name": "Gray",
+      "rgba": "8E9089FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A00-D0",
+        "A00-D00"
+      ]
+    },
+    {
+      "filament_code": "10104",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Basic",
+      "color_name": "Light Gray",
+      "rgba": "D1D3D5FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A00-D2",
+        "A00-D02"
+      ]
+    },
+    {
+      "filament_code": "10105",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Basic",
+      "color_name": "Dark Gray",
+      "rgba": "545454FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A00-D3",
+        "A00-D03"
+      ]
+    },
+    {
+      "filament_code": "10200",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Basic",
+      "color_name": "Red",
+      "rgba": "C12E1FFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A00-R0",
+        "A00-R00"
+      ]
+    },
+    {
+      "filament_code": "10201",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Basic",
+      "color_name": "Beige",
+      "rgba": "F7E6DEFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A00-P0",
+        "A00-P00"
+      ]
+    },
+    {
+      "filament_code": "10202",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Basic",
+      "color_name": "Magenta",
+      "rgba": "EC008CFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A00-P6",
+        "A00-P06"
+      ]
+    },
+    {
+      "filament_code": "10203",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Basic",
+      "color_name": "Pink",
+      "rgba": "F55A74FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A00-P1",
+        "A00-P01",
+        "A00-A0"
+      ]
+    },
+    {
+      "filament_code": "10204",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Basic",
+      "color_name": "Hot Pink",
+      "rgba": "F5547CFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A00-R3",
+        "A00-R03"
+      ]
+    },
+    {
+      "filament_code": "10205",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Basic",
+      "color_name": "Maroon Red",
+      "rgba": "9D2235FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A00-R2",
+        "A00-R02"
+      ]
+    },
+    {
+      "filament_code": "10300",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Basic",
+      "color_name": "Orange",
+      "rgba": "FF6A13FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A00-A0",
+        "A00-A00",
+        "A00-A1"
+      ]
+    },
+    {
+      "filament_code": "10301",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Basic",
+      "color_name": "Pumpkin Orange",
+      "rgba": "FF9016FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A00-A1",
+        "A00-A01"
+      ]
+    },
+    {
+      "filament_code": "10400",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Basic",
+      "color_name": "Yellow",
+      "rgba": "F4EE2AFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A00-Y0",
+        "A00-Y00"
+      ]
+    },
+    {
+      "filament_code": "10401",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Basic",
+      "color_name": "Gold",
+      "rgba": "E4BD68FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A00-Y4",
+        "A00-Y04"
+      ]
+    },
+    {
+      "filament_code": "10402",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Basic",
+      "color_name": "Sunflower Yellow",
+      "rgba": "FEC600FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A00-Y2",
+        "A00-Y02"
+      ]
+    },
+    {
+      "filament_code": "10500",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Basic",
+      "color_name": "Green",
+      "rgba": "00AE42FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A00-G0",
+        "A00-G00"
+      ]
+    },
+    {
+      "filament_code": "10501",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Basic",
+      "color_name": "Bambu Green",
+      "rgba": "00AE42FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A00-G6",
+        "A00-G06",
+        "A00-G1"
+      ]
+    },
+    {
+      "filament_code": "10502",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Basic",
+      "color_name": "Mistletoe Green",
+      "rgba": "3F8E43FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A00-G2",
+        "A00-G02"
+      ]
+    },
+    {
+      "filament_code": "10503",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Basic",
+      "color_name": "Bright Green",
+      "rgba": "BECF00FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A00-G3",
+        "A00-G03"
+      ]
+    },
+    {
+      "filament_code": "10601",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Basic",
+      "color_name": "Blue",
+      "rgba": "0A2989FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A00-B9",
+        "A00-B09"
+      ]
+    },
+    {
+      "filament_code": "10602",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Basic",
+      "color_name": "Blue Gray",
+      "rgba": "5B6579FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A00-B1",
+        "A00-B01"
+      ]
+    },
+    {
+      "filament_code": "10603",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Basic",
+      "color_name": "Cyan",
+      "rgba": "0086D6FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A00-B8",
+        "A00-B08"
+      ]
+    },
+    {
+      "filament_code": "10604",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Basic",
+      "color_name": "Cobalt Blue",
+      "rgba": "0056B8FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A00-B3",
+        "A00-B03"
+      ]
+    },
+    {
+      "filament_code": "10605",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Basic",
+      "color_name": "Turquoise",
+      "rgba": "00B1B7FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A00-B5",
+        "A00-B05"
+      ]
+    },
+    {
+      "filament_code": "10700",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Basic",
+      "color_name": "Purple",
+      "rgba": "5E43B7FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A00-P5",
+        "A00-P05"
+      ]
+    },
+    {
+      "filament_code": "10701",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Basic",
+      "color_name": "Indigo Purple",
+      "rgba": "482960FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A00-P2",
+        "A00-P02"
+      ]
+    },
+    {
+      "filament_code": "10800",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Basic",
+      "color_name": "Brown",
+      "rgba": "9D432CFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A00-N0",
+        "A00-N00"
+      ]
+    },
+    {
+      "filament_code": "10801",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Basic",
+      "color_name": "Bronze",
+      "rgba": "847D48FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A00-Y3",
+        "A00-Y03"
+      ]
+    },
+    {
+      "filament_code": "10802",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Basic",
+      "color_name": "Cocoa Brown",
+      "rgba": "6F5034FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A00-N1",
+        "A00-N01"
+      ]
+    },
+    {
+      "filament_code": "10900",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Gradient",
+      "color_name": "Arctic Whisper",
+      "rgba": "9CDBD9FF",
+      "extra_colors": "9cdbd9ff,ffffffff",
+      "effect_type": "gradient",
+      "variant_ids": [
+        "A00-M0",
+        "A00-M00"
+      ]
+    },
+    {
+      "filament_code": "10901",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Gradient",
+      "color_name": "Solar Breeze",
+      "rgba": "E94B3CFF",
+      "extra_colors": "e94b3cff,ffffffff",
+      "effect_type": "gradient",
+      "variant_ids": [
+        "A00-M1",
+        "A00-M01"
+      ]
+    },
+    {
+      "filament_code": "10902",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Gradient",
+      "color_name": "Ocean to Meadow",
+      "rgba": "307FE2FF",
+      "extra_colors": "307fe2ff,54ff9bff",
+      "effect_type": "gradient",
+      "variant_ids": [
+        "A00-M2",
+        "A00-M02"
+      ]
+    },
+    {
+      "filament_code": "10903",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Gradient",
+      "color_name": "Pink Citrus",
+      "rgba": "F78F77FF",
+      "extra_colors": "f78f77ff,e4505aff",
+      "effect_type": "gradient",
+      "variant_ids": [
+        "A00-M3",
+        "A00-M03"
+      ]
+    },
+    {
+      "filament_code": "10904",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Gradient",
+      "color_name": "Mint Lime",
+      "rgba": "B6FF43FF",
+      "extra_colors": "b6ff43ff,4ec939ff",
+      "effect_type": "gradient",
+      "variant_ids": [
+        "A00-M4",
+        "A00-M04"
+      ]
+    },
+    {
+      "filament_code": "10905",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Gradient",
+      "color_name": "Blueberry Bubblegum",
+      "rgba": "6FCAEFFF",
+      "extra_colors": "6fcaefff,8573ddff",
+      "effect_type": "gradient",
+      "variant_ids": [
+        "A00-M5",
+        "A00-M05"
+      ]
+    },
+    {
+      "filament_code": "10906",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Gradient",
+      "color_name": "Dusk Glare",
+      "rgba": "CE4406FF",
+      "extra_colors": "ce4406ff,ed9558ff",
+      "effect_type": "gradient",
+      "variant_ids": [
+        "A00-M6",
+        "A00-M06"
+      ]
+    },
+    {
+      "filament_code": "10907",
+      "filament_id": "GFA00",
+      "slicer_filament_name": "Bambu PLA Basic",
+      "fila_type": "PLA Basic",
+      "material": "PLA",
+      "subtype": "Gradient",
+      "color_name": "Cotton Candy Cloud",
+      "rgba": "E7C1D5FF",
+      "extra_colors": "e7c1d5ff,8ec9e9ff",
+      "effect_type": "gradient",
+      "variant_ids": [
+        "A00-M7",
+        "A00-M07"
+      ]
+    },
+    {
+      "filament_code": "15100",
+      "filament_id": "GFA13",
+      "slicer_filament_name": "Bambu PLA Dynamic",
+      "fila_type": "PLA Dynamic",
+      "material": "PLA",
+      "subtype": "Dynamic",
+      "color_name": "UV Color Changing - White to Coral",
+      "rgba": "FFFFFFFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A13-W0",
+        "A13-W00"
+      ]
+    },
+    {
+      "filament_code": "13203",
+      "filament_id": "GFA15",
+      "slicer_filament_name": "Bambu PLA Galaxy",
+      "fila_type": "PLA Galaxy",
+      "material": "PLA",
+      "subtype": "Galaxy",
+      "color_name": "Brown",
+      "rgba": "684A43FF",
+      "extra_colors": null,
+      "effect_type": "galaxy",
+      "variant_ids": [
+        "A15-R0",
+        "A15-R00"
+      ]
+    },
+    {
+      "filament_code": "13503",
+      "filament_id": "GFA15",
+      "slicer_filament_name": "Bambu PLA Galaxy",
+      "fila_type": "PLA Galaxy",
+      "material": "PLA",
+      "subtype": "Galaxy",
+      "color_name": "Green",
+      "rgba": "3B665EFF",
+      "extra_colors": null,
+      "effect_type": "galaxy",
+      "variant_ids": [
+        "A15-G0",
+        "A15-G00"
+      ]
+    },
+    {
+      "filament_code": "13504",
+      "filament_id": "GFA15",
+      "slicer_filament_name": "Bambu PLA Galaxy",
+      "fila_type": "PLA Galaxy",
+      "material": "PLA",
+      "subtype": "Galaxy",
+      "color_name": "Nebulae",
+      "rgba": "424379FF",
+      "extra_colors": null,
+      "effect_type": "galaxy",
+      "variant_ids": [
+        "A15-G1",
+        "A15-G01"
+      ]
+    },
+    {
+      "filament_code": "13602",
+      "filament_id": "GFA15",
+      "slicer_filament_name": "Bambu PLA Galaxy",
+      "fila_type": "PLA Galaxy",
+      "material": "PLA",
+      "subtype": "Galaxy",
+      "color_name": "Purple",
+      "rgba": "594177FF",
+      "extra_colors": null,
+      "effect_type": "galaxy",
+      "variant_ids": [
+        "A15-B0",
+        "A15-B00"
+      ]
+    },
+    {
+      "filament_code": "15200",
+      "filament_id": "GFA12",
+      "slicer_filament_name": "Bambu PLA Glow",
+      "fila_type": "PLA Glow",
+      "material": "PLA",
+      "subtype": "Glow",
+      "color_name": "Glow Pink",
+      "rgba": "F17B8FFF",
+      "extra_colors": null,
+      "effect_type": "glow",
+      "variant_ids": [
+        "A12-R0",
+        "A12-R00"
+      ]
+    },
+    {
+      "filament_code": "15300",
+      "filament_id": "GFA12",
+      "slicer_filament_name": "Bambu PLA Glow",
+      "fila_type": "PLA Glow",
+      "material": "PLA",
+      "subtype": "Glow",
+      "color_name": "Glow Orange",
+      "rgba": "FF9D5BFF",
+      "extra_colors": null,
+      "effect_type": "glow",
+      "variant_ids": [
+        "A12-A0",
+        "A12-A00"
+      ]
+    },
+    {
+      "filament_code": "15400",
+      "filament_id": "GFA12",
+      "slicer_filament_name": "Bambu PLA Glow",
+      "fila_type": "PLA Glow",
+      "material": "PLA",
+      "subtype": "Glow",
+      "color_name": "Glow Yellow",
+      "rgba": "F8FF80FF",
+      "extra_colors": null,
+      "effect_type": "glow",
+      "variant_ids": [
+        "A12-Y0",
+        "A12-Y00"
+      ]
+    },
+    {
+      "filament_code": "15500",
+      "filament_id": "GFA12",
+      "slicer_filament_name": "Bambu PLA Glow",
+      "fila_type": "PLA Glow",
+      "material": "PLA",
+      "subtype": "Glow",
+      "color_name": "Glow Green",
+      "rgba": "A1FFACFF",
+      "extra_colors": null,
+      "effect_type": "glow",
+      "variant_ids": [
+        "A12-G0",
+        "A12-G00"
+      ]
+    },
+    {
+      "filament_code": "15600",
+      "filament_id": "GFA12",
+      "slicer_filament_name": "Bambu PLA Glow",
+      "fila_type": "PLA Glow",
+      "material": "PLA",
+      "subtype": "Glow",
+      "color_name": "Glow Blue",
+      "rgba": "7AC0E9FF",
+      "extra_colors": null,
+      "effect_type": "glow",
+      "variant_ids": [
+        "A12-B0",
+        "A12-B00"
+      ]
+    },
+    {
+      "filament_code": "16100",
+      "filament_id": "GFA18",
+      "slicer_filament_name": "Bambu PLA Lite",
+      "fila_type": "PLA Lite",
+      "material": "PLA",
+      "subtype": "Lite",
+      "color_name": "Black",
+      "rgba": "000000FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A18-K0",
+        "A18-K00"
+      ]
+    },
+    {
+      "filament_code": "16101",
+      "filament_id": "GFA18",
+      "slicer_filament_name": "Bambu PLA Lite",
+      "fila_type": "PLA Lite",
+      "material": "PLA",
+      "subtype": "Lite",
+      "color_name": "Gray",
+      "rgba": "999D9DFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A18-D0",
+        "A18-D00"
+      ]
+    },
+    {
+      "filament_code": "16102",
+      "filament_id": "GFA18",
+      "slicer_filament_name": "Bambu PLA Lite",
+      "fila_type": "PLA Lite",
+      "material": "PLA",
+      "subtype": "Lite",
+      "color_name": "Dark Gray",
+      "rgba": "8C8B8CFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A18-D1",
+        "A18-D01"
+      ]
+    },
+    {
+      "filament_code": "16103",
+      "filament_id": "GFA18",
+      "slicer_filament_name": "Bambu PLA Lite",
+      "fila_type": "PLA Lite",
+      "material": "PLA",
+      "subtype": "Lite",
+      "color_name": "White",
+      "rgba": "FFFFFFFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A18-W0",
+        "A18-W00"
+      ]
+    },
+    {
+      "filament_code": "16200",
+      "filament_id": "GFA18",
+      "slicer_filament_name": "Bambu PLA Lite",
+      "fila_type": "PLA Lite",
+      "material": "PLA",
+      "subtype": "Lite",
+      "color_name": "Red",
+      "rgba": "C6001AFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A18-R0",
+        "A18-R00"
+      ]
+    },
+    {
+      "filament_code": "16301",
+      "filament_id": "GFA18",
+      "slicer_filament_name": "Bambu PLA Lite",
+      "fila_type": "PLA Lite",
+      "material": "PLA",
+      "subtype": "Lite",
+      "color_name": "Orange",
+      "rgba": "FF671FFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A18-A1",
+        "A18-A01"
+      ]
+    },
+    {
+      "filament_code": "16400",
+      "filament_id": "GFA18",
+      "slicer_filament_name": "Bambu PLA Lite",
+      "fila_type": "PLA Lite",
+      "material": "PLA",
+      "subtype": "Lite",
+      "color_name": "Yellow",
+      "rgba": "EFE255FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A18-Y0",
+        "A18-Y00"
+      ]
+    },
+    {
+      "filament_code": "16401",
+      "filament_id": "GFA18",
+      "slicer_filament_name": "Bambu PLA Lite",
+      "fila_type": "PLA Lite",
+      "material": "PLA",
+      "subtype": "Lite",
+      "color_name": "Sunflower Yellow",
+      "rgba": "FFB549FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A18-Y1",
+        "A18-Y01"
+      ]
+    },
+    {
+      "filament_code": "16501",
+      "filament_id": "GFA18",
+      "slicer_filament_name": "Bambu PLA Lite",
+      "fila_type": "PLA Lite",
+      "material": "PLA",
+      "subtype": "Lite",
+      "color_name": "Green",
+      "rgba": "00BB31FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A18-G1",
+        "A18-G01"
+      ]
+    },
+    {
+      "filament_code": "16600",
+      "filament_id": "GFA18",
+      "slicer_filament_name": "Bambu PLA Lite",
+      "fila_type": "PLA Lite",
+      "material": "PLA",
+      "subtype": "Lite",
+      "color_name": "Cyan",
+      "rgba": "4DAFDAFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A18-B0",
+        "A18-B00"
+      ]
+    },
+    {
+      "filament_code": "16601",
+      "filament_id": "GFA18",
+      "slicer_filament_name": "Bambu PLA Lite",
+      "fila_type": "PLA Lite",
+      "material": "PLA",
+      "subtype": "Lite",
+      "color_name": "Blue",
+      "rgba": "004EA8FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A18-B1",
+        "A18-B01"
+      ]
+    },
+    {
+      "filament_code": "16700",
+      "filament_id": "GFA18",
+      "slicer_filament_name": "Bambu PLA Lite",
+      "fila_type": "PLA Lite",
+      "material": "PLA",
+      "subtype": "Lite",
+      "color_name": "Matte Beige",
+      "rgba": "ECC3B2FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A18-P0",
+        "A18-P00"
+      ]
+    },
+    {
+      "filament_code": "16800",
+      "filament_id": "GFA18",
+      "slicer_filament_name": "Bambu PLA Lite",
+      "fila_type": "PLA Lite",
+      "material": "PLA",
+      "subtype": "Lite",
+      "color_name": "Cocoa Brown",
+      "rgba": "745335FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A18-N0",
+        "A18-N00"
+      ]
+    },
+    {
+      "filament_code": "13103",
+      "filament_id": "GFA07",
+      "slicer_filament_name": "Bambu PLA Marble",
+      "fila_type": "PLA Marble",
+      "material": "PLA",
+      "subtype": "Marble",
+      "color_name": "White Marble",
+      "rgba": "F7F3F0FF",
+      "extra_colors": null,
+      "effect_type": "marble",
+      "variant_ids": [
+        "A07-D4",
+        "A07-D04"
+      ]
+    },
+    {
+      "filament_code": "13201",
+      "filament_id": "GFA07",
+      "slicer_filament_name": "Bambu PLA Marble",
+      "fila_type": "PLA Marble",
+      "material": "PLA",
+      "subtype": "Marble",
+      "color_name": "Red Granite",
+      "rgba": "AD4E38FF",
+      "extra_colors": null,
+      "effect_type": "marble",
+      "variant_ids": [
+        "A07-R5",
+        "A07-R05"
+      ]
+    },
+    {
+      "filament_code": "11100",
+      "filament_id": "GFA01",
+      "slicer_filament_name": "Bambu PLA Matte",
+      "fila_type": "PLA Matte",
+      "material": "PLA",
+      "subtype": "Matte",
+      "color_name": "Ivory White",
+      "rgba": "FFFFFFFF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "A01-W2",
+        "A01-W02",
+        "A01-W1",
+        "A01-W01",
+        "A01-W0",
+        "A01-W00"
+      ]
+    },
+    {
+      "filament_code": "11101",
+      "filament_id": "GFA01",
+      "slicer_filament_name": "Bambu PLA Matte",
+      "fila_type": "PLA Matte",
+      "material": "PLA",
+      "subtype": "Matte",
+      "color_name": "Charcoal",
+      "rgba": "000000FF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "A01-K1",
+        "A01-K01",
+        "A01-K0",
+        "A01-K00"
+      ]
+    },
+    {
+      "filament_code": "11102",
+      "filament_id": "GFA01",
+      "slicer_filament_name": "Bambu PLA Matte",
+      "fila_type": "PLA Matte",
+      "material": "PLA",
+      "subtype": "Matte",
+      "color_name": "Ash Gray",
+      "rgba": "9B9EA0FF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "A01-D3",
+        "A01-D03"
+      ]
+    },
+    {
+      "filament_code": "11103",
+      "filament_id": "GFA01",
+      "slicer_filament_name": "Bambu PLA Matte",
+      "fila_type": "PLA Matte",
+      "material": "PLA",
+      "subtype": "Matte",
+      "color_name": "Bone White",
+      "rgba": "CBC6B8FF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "A01-W3",
+        "A01-W03"
+      ]
+    },
+    {
+      "filament_code": "11104",
+      "filament_id": "GFA01",
+      "slicer_filament_name": "Bambu PLA Matte",
+      "fila_type": "PLA Matte",
+      "material": "PLA",
+      "subtype": "Matte",
+      "color_name": "Nardo Gray",
+      "rgba": "757575FF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "A01-D0",
+        "A01-D00"
+      ]
+    },
+    {
+      "filament_code": "11200",
+      "filament_id": "GFA01",
+      "slicer_filament_name": "Bambu PLA Matte",
+      "fila_type": "PLA Matte",
+      "material": "PLA",
+      "subtype": "Matte",
+      "color_name": "Scarlet Red",
+      "rgba": "DE4343FF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "A01-R1",
+        "A01-R01"
+      ]
+    },
+    {
+      "filament_code": "11201",
+      "filament_id": "GFA01",
+      "slicer_filament_name": "Bambu PLA Matte",
+      "fila_type": "PLA Matte",
+      "material": "PLA",
+      "subtype": "Matte",
+      "color_name": "Sakura Pink",
+      "rgba": "E8AFCFFF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "A01-P3",
+        "A01-P03"
+      ]
+    },
+    {
+      "filament_code": "11202",
+      "filament_id": "GFA01",
+      "slicer_filament_name": "Bambu PLA Matte",
+      "fila_type": "PLA Matte",
+      "material": "PLA",
+      "subtype": "Matte",
+      "color_name": "Dark Red",
+      "rgba": "BB3D43FF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "A01-R4",
+        "A01-R04"
+      ]
+    },
+    {
+      "filament_code": "11203",
+      "filament_id": "GFA01",
+      "slicer_filament_name": "Bambu PLA Matte",
+      "fila_type": "PLA Matte",
+      "material": "PLA",
+      "subtype": "Matte",
+      "color_name": "Terracotta",
+      "rgba": "B15533FF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "A01-R2",
+        "A01-R02"
+      ]
+    },
+    {
+      "filament_code": "11204",
+      "filament_id": "GFA01",
+      "slicer_filament_name": "Bambu PLA Matte",
+      "fila_type": "PLA Matte",
+      "material": "PLA",
+      "subtype": "Matte",
+      "color_name": "Plum",
+      "rgba": "950051FF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "A01-R3",
+        "A01-R03"
+      ]
+    },
+    {
+      "filament_code": "11300",
+      "filament_id": "GFA01",
+      "slicer_filament_name": "Bambu PLA Matte",
+      "fila_type": "PLA Matte",
+      "material": "PLA",
+      "subtype": "Matte",
+      "color_name": "Mandarin Orange",
+      "rgba": "F99963FF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "A01-A2",
+        "A01-A02"
+      ]
+    },
+    {
+      "filament_code": "11400",
+      "filament_id": "GFA01",
+      "slicer_filament_name": "Bambu PLA Matte",
+      "fila_type": "PLA Matte",
+      "material": "PLA",
+      "subtype": "Matte",
+      "color_name": "Lemon Yellow",
+      "rgba": "F7D959FF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "A01-Y2",
+        "A01-Y02",
+        "A01-A2"
+      ]
+    },
+    {
+      "filament_code": "11401",
+      "filament_id": "GFA01",
+      "slicer_filament_name": "Bambu PLA Matte",
+      "fila_type": "PLA Matte",
+      "material": "PLA",
+      "subtype": "Matte",
+      "color_name": "Desert Tan",
+      "rgba": "E8DBB7FF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "A01-Y3",
+        "A01-Y03"
+      ]
+    },
+    {
+      "filament_code": "11500",
+      "filament_id": "GFA01",
+      "slicer_filament_name": "Bambu PLA Matte",
+      "fila_type": "PLA Matte",
+      "material": "PLA",
+      "subtype": "Matte",
+      "color_name": "Grass Green",
+      "rgba": "61C680FF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "A01-G1",
+        "A01-G01"
+      ]
+    },
+    {
+      "filament_code": "11501",
+      "filament_id": "GFA01",
+      "slicer_filament_name": "Bambu PLA Matte",
+      "fila_type": "PLA Matte",
+      "material": "PLA",
+      "subtype": "Matte",
+      "color_name": "Dark Green",
+      "rgba": "68724DFF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "A01-G7",
+        "A01-G07"
+      ]
+    },
+    {
+      "filament_code": "11502",
+      "filament_id": "GFA01",
+      "slicer_filament_name": "Bambu PLA Matte",
+      "fila_type": "PLA Matte",
+      "material": "PLA",
+      "subtype": "Matte",
+      "color_name": "Apple Green",
+      "rgba": "C2E189FF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "A01-G0",
+        "A01-G00"
+      ]
+    },
+    {
+      "filament_code": "11600",
+      "filament_id": "GFA01",
+      "slicer_filament_name": "Bambu PLA Matte",
+      "fila_type": "PLA Matte",
+      "material": "PLA",
+      "subtype": "Matte",
+      "color_name": "Marine Blue",
+      "rgba": "0078BFFF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "A01-B3",
+        "A01-B03"
+      ]
+    },
+    {
+      "filament_code": "11601",
+      "filament_id": "GFA01",
+      "slicer_filament_name": "Bambu PLA Matte",
+      "fila_type": "PLA Matte",
+      "material": "PLA",
+      "subtype": "Matte",
+      "color_name": "Ice Blue",
+      "rgba": "A3D8E1FF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "A01-B4",
+        "A01-B04"
+      ]
+    },
+    {
+      "filament_code": "11602",
+      "filament_id": "GFA01",
+      "slicer_filament_name": "Bambu PLA Matte",
+      "fila_type": "PLA Matte",
+      "material": "PLA",
+      "subtype": "Matte",
+      "color_name": "Dark Blue",
+      "rgba": "042F56FF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "A01-B6",
+        "A01-B06"
+      ]
+    },
+    {
+      "filament_code": "11603",
+      "filament_id": "GFA01",
+      "slicer_filament_name": "Bambu PLA Matte",
+      "fila_type": "PLA Matte",
+      "material": "PLA",
+      "subtype": "Matte",
+      "color_name": "Sky Blue",
+      "rgba": "56B7E6FF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "A01-B0",
+        "A01-B00"
+      ]
+    },
+    {
+      "filament_code": "11700",
+      "filament_id": "GFA01",
+      "slicer_filament_name": "Bambu PLA Matte",
+      "fila_type": "PLA Matte",
+      "material": "PLA",
+      "subtype": "Matte",
+      "color_name": "Lilac Purple",
+      "rgba": "AE96D4FF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "A01-P4",
+        "A01-P04"
+      ]
+    },
+    {
+      "filament_code": "11800",
+      "filament_id": "GFA01",
+      "slicer_filament_name": "Bambu PLA Matte",
+      "fila_type": "PLA Matte",
+      "material": "PLA",
+      "subtype": "Matte",
+      "color_name": "Latte Brown",
+      "rgba": "D3B7A7FF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "A01-N1",
+        "A01-N01"
+      ]
+    },
+    {
+      "filament_code": "11801",
+      "filament_id": "GFA01",
+      "slicer_filament_name": "Bambu PLA Matte",
+      "fila_type": "PLA Matte",
+      "material": "PLA",
+      "subtype": "Matte",
+      "color_name": "Dark Brown",
+      "rgba": "7D6556FF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "A01-N2",
+        "A01-N02"
+      ]
+    },
+    {
+      "filament_code": "11802",
+      "filament_id": "GFA01",
+      "slicer_filament_name": "Bambu PLA Matte",
+      "fila_type": "PLA Matte",
+      "material": "PLA",
+      "subtype": "Matte",
+      "color_name": "Dark Chocolate",
+      "rgba": "4D3324FF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "A01-N0",
+        "A01-N00"
+      ]
+    },
+    {
+      "filament_code": "11803",
+      "filament_id": "GFA01",
+      "slicer_filament_name": "Bambu PLA Matte",
+      "fila_type": "PLA Matte",
+      "material": "PLA",
+      "subtype": "Matte",
+      "color_name": "Caramel",
+      "rgba": "AE835BFF",
+      "extra_colors": null,
+      "effect_type": "matte",
+      "variant_ids": [
+        "A01-N3",
+        "A01-N03"
+      ]
+    },
+    {
+      "filament_code": "13100",
+      "filament_id": "GFA02",
+      "slicer_filament_name": "Bambu PLA Metal",
+      "fila_type": "PLA Metal",
+      "material": "PLA",
+      "subtype": "Metal",
+      "color_name": "Iron Gray Metallic",
+      "rgba": "43403DFF",
+      "extra_colors": null,
+      "effect_type": "metal",
+      "variant_ids": [
+        "A02-D2",
+        "A02-D02"
+      ]
+    },
+    {
+      "filament_code": "13400",
+      "filament_id": "GFA02",
+      "slicer_filament_name": "Bambu PLA Metal",
+      "fila_type": "PLA Metal",
+      "material": "PLA",
+      "subtype": "Metal",
+      "color_name": "Iridium Gold Metallic",
+      "rgba": "B39B84FF",
+      "extra_colors": null,
+      "effect_type": "metal",
+      "variant_ids": [
+        "A02-Y1",
+        "A02-Y01"
+      ]
+    },
+    {
+      "filament_code": "13500",
+      "filament_id": "GFA02",
+      "slicer_filament_name": "Bambu PLA Metal",
+      "fila_type": "PLA Metal",
+      "material": "PLA",
+      "subtype": "Metal",
+      "color_name": "Oxide Green Metallic",
+      "rgba": "1D7C6AFF",
+      "extra_colors": null,
+      "effect_type": "metal",
+      "variant_ids": [
+        "A02-G2",
+        "A02-G02"
+      ]
+    },
+    {
+      "filament_code": "13600",
+      "filament_id": "GFA02",
+      "slicer_filament_name": "Bambu PLA Metal",
+      "fila_type": "PLA Metal",
+      "material": "PLA",
+      "subtype": "Metal",
+      "color_name": "Cobalt Blue Metallic",
+      "rgba": "39699EFF",
+      "extra_colors": null,
+      "effect_type": "metal",
+      "variant_ids": [
+        "A02-B2",
+        "A02-B02"
+      ]
+    },
+    {
+      "filament_code": "13800",
+      "filament_id": "GFA02",
+      "slicer_filament_name": "Bambu PLA Metal",
+      "fila_type": "PLA Metal",
+      "material": "PLA",
+      "subtype": "Metal",
+      "color_name": "Copper Brown Metallic",
+      "rgba": "AA6443FF",
+      "extra_colors": null,
+      "effect_type": "metal",
+      "variant_ids": [
+        "A02-N3",
+        "A02-N03"
+      ]
+    },
+    {
+      "filament_code": "18100",
+      "filament_id": "GFA20",
+      "slicer_filament_name": "Bambu PLA Palette",
+      "fila_type": "PLA Palette",
+      "material": "PLA",
+      "subtype": "Palette",
+      "color_name": "White",
+      "rgba": "FFFFFFFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A20-W00"
+      ]
+    },
+    {
+      "filament_code": "18101",
+      "filament_id": "GFA20",
+      "slicer_filament_name": "Bambu PLA Palette",
+      "fila_type": "PLA Palette",
+      "material": "PLA",
+      "subtype": "Palette",
+      "color_name": "Key",
+      "rgba": "000000FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A20-K00"
+      ]
+    },
+    {
+      "filament_code": "18200",
+      "filament_id": "GFA20",
+      "slicer_filament_name": "Bambu PLA Palette",
+      "fila_type": "PLA Palette",
+      "material": "PLA",
+      "subtype": "Palette",
+      "color_name": "Magenta",
+      "rgba": "E24585FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A20-R00"
+      ]
+    },
+    {
+      "filament_code": "18400",
+      "filament_id": "GFA20",
+      "slicer_filament_name": "Bambu PLA Palette",
+      "fila_type": "PLA Palette",
+      "material": "PLA",
+      "subtype": "Palette",
+      "color_name": "Yellow",
+      "rgba": "FCE300FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A20-Y00"
+      ]
+    },
+    {
+      "filament_code": "18600",
+      "filament_id": "GFA20",
+      "slicer_filament_name": "Bambu PLA Palette",
+      "fila_type": "PLA Palette",
+      "material": "PLA",
+      "subtype": "Palette",
+      "color_name": "Cyan",
+      "rgba": "0090DAFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A20-B00"
+      ]
+    },
+    {
+      "filament_code": "17100",
+      "filament_id": "GFA19",
+      "slicer_filament_name": "Bambu PLA Pure",
+      "fila_type": "PLA Pure",
+      "material": "PLA",
+      "subtype": "Pure",
+      "color_name": "Pure White",
+      "rgba": "FFFFFFFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A19-W00"
+      ]
+    },
+    {
+      "filament_code": "17101",
+      "filament_id": "GFA19",
+      "slicer_filament_name": "Bambu PLA Pure",
+      "fila_type": "PLA Pure",
+      "material": "PLA",
+      "subtype": "Pure",
+      "color_name": "Absolute Black",
+      "rgba": "000000FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A19-K00"
+      ]
+    },
+    {
+      "filament_code": "17200",
+      "filament_id": "GFA19",
+      "slicer_filament_name": "Bambu PLA Pure",
+      "fila_type": "PLA Pure",
+      "material": "PLA",
+      "subtype": "Pure",
+      "color_name": "Milky Pink",
+      "rgba": "F7CED7FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A19-P00"
+      ]
+    },
+    {
+      "filament_code": "17300",
+      "filament_id": "GFA19",
+      "slicer_filament_name": "Bambu PLA Pure",
+      "fila_type": "PLA Pure",
+      "material": "PLA",
+      "subtype": "Pure",
+      "color_name": "Apricot",
+      "rgba": "FFB673FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A19-A00"
+      ]
+    },
+    {
+      "filament_code": "17600",
+      "filament_id": "GFA19",
+      "slicer_filament_name": "Bambu PLA Pure",
+      "fila_type": "PLA Pure",
+      "material": "PLA",
+      "subtype": "Pure",
+      "color_name": "Baby Blue",
+      "rgba": "A4DBE8FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A19-B00"
+      ]
+    },
+    {
+      "filament_code": "13104",
+      "filament_id": "GFA05",
+      "slicer_filament_name": "Bambu PLA Silk",
+      "fila_type": "PLA Silk",
+      "material": "PLA",
+      "subtype": "Silk",
+      "color_name": "Silver",
+      "rgba": "EAECEBFF",
+      "extra_colors": null,
+      "effect_type": "silk",
+      "variant_ids": [
+        "A05-D1",
+        "A05-D01"
+      ]
+    },
+    {
+      "filament_code": "13105",
+      "filament_id": "GFA05",
+      "slicer_filament_name": "Bambu PLA Silk",
+      "fila_type": "PLA Silk",
+      "material": "PLA",
+      "subtype": "Silk",
+      "color_name": "White",
+      "rgba": "FFFFFFFF",
+      "extra_colors": null,
+      "effect_type": "silk",
+      "variant_ids": [
+        "A05-W0",
+        "A05-W00"
+      ]
+    },
+    {
+      "filament_code": "13202",
+      "filament_id": "GFA05",
+      "slicer_filament_name": "Bambu PLA Silk",
+      "fila_type": "PLA Silk",
+      "material": "PLA",
+      "subtype": "Silk",
+      "color_name": "Pink",
+      "rgba": "EEB1C1FF",
+      "extra_colors": null,
+      "effect_type": "silk",
+      "variant_ids": [
+        "A05-P3",
+        "A05-P03"
+      ]
+    },
+    {
+      "filament_code": "13300",
+      "filament_id": "GFA05",
+      "slicer_filament_name": "Bambu PLA Silk",
+      "fila_type": "PLA Silk",
+      "material": "PLA",
+      "subtype": "Silk",
+      "color_name": "Copper",
+      "rgba": "5E4B3CFF",
+      "extra_colors": null,
+      "effect_type": "silk",
+      "variant_ids": [
+        "A05-N4",
+        "A05-N04"
+      ]
+    },
+    {
+      "filament_code": "13401",
+      "filament_id": "GFA05",
+      "slicer_filament_name": "Bambu PLA Silk",
+      "fila_type": "PLA Silk",
+      "material": "PLA",
+      "subtype": "Silk",
+      "color_name": "Gold",
+      "rgba": "E5B03DFF",
+      "extra_colors": null,
+      "effect_type": "silk",
+      "variant_ids": [
+        "A05-Y4",
+        "A05-Y04"
+      ]
+    },
+    {
+      "filament_code": "13502",
+      "filament_id": "GFA05",
+      "slicer_filament_name": "Bambu PLA Silk",
+      "fila_type": "PLA Silk",
+      "material": "PLA",
+      "subtype": "Silk",
+      "color_name": "Green",
+      "rgba": "4CE4A0FF",
+      "extra_colors": null,
+      "effect_type": "silk",
+      "variant_ids": [
+        "A05-G1",
+        "A05-G01"
+      ]
+    },
+    {
+      "filament_code": "13601",
+      "filament_id": "GFA05",
+      "slicer_filament_name": "Bambu PLA Silk",
+      "fila_type": "PLA Silk",
+      "material": "PLA",
+      "subtype": "Silk",
+      "color_name": "Blue",
+      "rgba": "147BD1FF",
+      "extra_colors": null,
+      "effect_type": "silk",
+      "variant_ids": [
+        "A05-B0",
+        "A05-B00"
+      ]
+    },
+    {
+      "filament_code": "13701",
+      "filament_id": "GFA05",
+      "slicer_filament_name": "Bambu PLA Silk",
+      "fila_type": "PLA Silk",
+      "material": "PLA",
+      "subtype": "Silk",
+      "color_name": "Purple",
+      "rgba": "854CE4FF",
+      "extra_colors": null,
+      "effect_type": "silk",
+      "variant_ids": [
+        "A05-P5",
+        "A05-P05"
+      ]
+    },
+    {
+      "filament_code": "13901",
+      "filament_id": "GFA05",
+      "slicer_filament_name": "Bambu PLA Silk",
+      "fila_type": "PLA Silk",
+      "material": "PLA",
+      "subtype": "Dual Color",
+      "color_name": "Gilded Rose",
+      "rgba": "FF9425FF",
+      "extra_colors": "ff9425ff,c16784ff",
+      "effect_type": "dual-color",
+      "variant_ids": [
+        "A05-T1",
+        "A05-T01",
+        "A00-M1"
+      ]
+    },
+    {
+      "filament_code": "13902",
+      "filament_id": "GFA05",
+      "slicer_filament_name": "Bambu PLA Silk",
+      "fila_type": "PLA Silk",
+      "material": "PLA",
+      "subtype": "Dual Color",
+      "color_name": "Midnight Blaze",
+      "rgba": "0047BBFF",
+      "extra_colors": "0047bbff,7d1b49ff",
+      "effect_type": "dual-color",
+      "variant_ids": [
+        "A05-T2",
+        "A05-T02",
+        "A05-T3"
+      ]
+    },
+    {
+      "filament_code": "13903",
+      "filament_id": "GFA05",
+      "slicer_filament_name": "Bambu PLA Silk",
+      "fila_type": "PLA Silk",
+      "material": "PLA",
+      "subtype": "Dual Color",
+      "color_name": "Neon City",
+      "rgba": "0047BBFF",
+      "extra_colors": "0047bbff,bb22a3ff",
+      "effect_type": "dual-color",
+      "variant_ids": [
+        "A05-T3",
+        "A05-T03",
+        "A05-M4"
+      ]
+    },
+    {
+      "filament_code": "13904",
+      "filament_id": "GFA05",
+      "slicer_filament_name": "Bambu PLA Silk",
+      "fila_type": "PLA Silk",
+      "material": "PLA",
+      "subtype": "Dual Color",
+      "color_name": "Blue Hawaii",
+      "rgba": "418FDEFF",
+      "extra_colors": "418fdeff,70c884ff",
+      "effect_type": "dual-color",
+      "variant_ids": [
+        "A05-T4",
+        "A05-T04"
+      ]
+    },
+    {
+      "filament_code": "13905",
+      "filament_id": "GFA05",
+      "slicer_filament_name": "Bambu PLA Silk",
+      "fila_type": "PLA Silk",
+      "material": "PLA",
+      "subtype": "Dual Color",
+      "color_name": "Velvet Eclipse (Black-Red)",
+      "rgba": "000000FF",
+      "extra_colors": "000000ff,a34342ff",
+      "effect_type": "dual-color",
+      "variant_ids": [
+        "A05-T5",
+        "A05-T05"
+      ]
+    },
+    {
+      "filament_code": "13906",
+      "filament_id": "GFA05",
+      "slicer_filament_name": "Bambu PLA Silk",
+      "fila_type": "PLA Silk",
+      "material": "PLA",
+      "subtype": "Dual Color",
+      "color_name": "South Beach",
+      "rgba": "F772A4FF",
+      "extra_colors": "f772a4ff,00918bff",
+      "effect_type": "dual-color",
+      "variant_ids": [
+        "A05-M1",
+        "A05-M01"
+      ]
+    },
+    {
+      "filament_code": "13909",
+      "filament_id": "GFA05",
+      "slicer_filament_name": "Bambu PLA Silk",
+      "fila_type": "PLA Silk",
+      "material": "PLA",
+      "subtype": "Dual Color",
+      "color_name": "Aurora Purple",
+      "rgba": "7F3696FF",
+      "extra_colors": "7f3696ff,006ec9ff",
+      "effect_type": "dual-color",
+      "variant_ids": [
+        "A05-M4",
+        "A05-M04"
+      ]
+    },
+    {
+      "filament_code": "13912",
+      "filament_id": "GFA05",
+      "slicer_filament_name": "Bambu PLA Silk",
+      "fila_type": "PLA Silk",
+      "material": "PLA",
+      "subtype": "Dual Color",
+      "color_name": "Dawn Radiance",
+      "rgba": "EC984CFF",
+      "extra_colors": "ec984cff,6cd4bcff,a66eb9ff,d87694ff",
+      "effect_type": "dual-color",
+      "variant_ids": [
+        "A05-M8",
+        "A05-M08"
+      ]
+    },
+    {
+      "filament_code": "13913",
+      "filament_id": "GFA05",
+      "slicer_filament_name": "Bambu PLA Silk",
+      "fila_type": "PLA Silk",
+      "material": "PLA",
+      "subtype": "Dual Color",
+      "color_name": "Mystic Magenta",
+      "rgba": "720062FF",
+      "extra_colors": "720062ff,3a913fff",
+      "effect_type": "dual-color",
+      "variant_ids": [
+        "A05-T7",
+        "A05-T07"
+      ]
+    },
+    {
+      "filament_code": "13916",
+      "filament_id": "GFA05",
+      "slicer_filament_name": "Bambu PLA Silk",
+      "fila_type": "PLA Silk",
+      "material": "PLA",
+      "subtype": "Dual Color",
+      "color_name": "Phantom Blue",
+      "rgba": "00629BFF",
+      "extra_colors": "00629bff,000000ff",
+      "effect_type": "dual-color",
+      "variant_ids": [
+        "A05-T9",
+        "A05-T09"
+      ]
+    },
+    {
+      "filament_code": "13108",
+      "filament_id": "GFA06",
+      "slicer_filament_name": "Bambu PLA Silk+",
+      "fila_type": "PLA Silk+",
+      "material": "PLA",
+      "subtype": "Silk+",
+      "color_name": "Titan Gray",
+      "rgba": "5F6367FF",
+      "extra_colors": null,
+      "effect_type": "silk",
+      "variant_ids": [
+        "A06-D0",
+        "A06-D00"
+      ]
+    },
+    {
+      "filament_code": "13109",
+      "filament_id": "GFA06",
+      "slicer_filament_name": "Bambu PLA Silk+",
+      "fila_type": "PLA Silk+",
+      "material": "PLA",
+      "subtype": "Silk+",
+      "color_name": "Silver",
+      "rgba": "C8C8C8FF",
+      "extra_colors": null,
+      "effect_type": "silk",
+      "variant_ids": [
+        "A06-D1",
+        "A06-D01",
+        "A06-D00"
+      ]
+    },
+    {
+      "filament_code": "13110",
+      "filament_id": "GFA06",
+      "slicer_filament_name": "Bambu PLA Silk+",
+      "fila_type": "PLA Silk+",
+      "material": "PLA",
+      "subtype": "Silk+",
+      "color_name": "White",
+      "rgba": "FFFFFFFF",
+      "extra_colors": null,
+      "effect_type": "silk",
+      "variant_ids": [
+        "A06-W0",
+        "A06-W00"
+      ]
+    },
+    {
+      "filament_code": "13205",
+      "filament_id": "GFA06",
+      "slicer_filament_name": "Bambu PLA Silk+",
+      "fila_type": "PLA Silk+",
+      "material": "PLA",
+      "subtype": "Silk+",
+      "color_name": "Candy Red",
+      "rgba": "D02727FF",
+      "extra_colors": null,
+      "effect_type": "silk",
+      "variant_ids": [
+        "A06-R0",
+        "A06-R00"
+      ]
+    },
+    {
+      "filament_code": "13206",
+      "filament_id": "GFA06",
+      "slicer_filament_name": "Bambu PLA Silk+",
+      "fila_type": "PLA Silk+",
+      "material": "PLA",
+      "subtype": "Silk+",
+      "color_name": "Rose Gold",
+      "rgba": "BA9594FF",
+      "extra_colors": null,
+      "effect_type": "silk",
+      "variant_ids": [
+        "A06-R1",
+        "A06-R01"
+      ]
+    },
+    {
+      "filament_code": "13207",
+      "filament_id": "GFA06",
+      "slicer_filament_name": "Bambu PLA Silk+",
+      "fila_type": "PLA Silk+",
+      "material": "PLA",
+      "subtype": "Silk+",
+      "color_name": "Pink",
+      "rgba": "F7ADA6FF",
+      "extra_colors": null,
+      "effect_type": "silk",
+      "variant_ids": [
+        "A06-R2",
+        "A06-R02"
+      ]
+    },
+    {
+      "filament_code": "13404",
+      "filament_id": "GFA06",
+      "slicer_filament_name": "Bambu PLA Silk+",
+      "fila_type": "PLA Silk+",
+      "material": "PLA",
+      "subtype": "Silk+",
+      "color_name": "Champagne",
+      "rgba": "F3CFB2FF",
+      "extra_colors": null,
+      "effect_type": "silk",
+      "variant_ids": [
+        "A06-Y0",
+        "A06-Y00"
+      ]
+    },
+    {
+      "filament_code": "13405",
+      "filament_id": "GFA06",
+      "slicer_filament_name": "Bambu PLA Silk+",
+      "fila_type": "PLA Silk+",
+      "material": "PLA",
+      "subtype": "Silk+",
+      "color_name": "Gold",
+      "rgba": "F4A925FF",
+      "extra_colors": null,
+      "effect_type": "silk",
+      "variant_ids": [
+        "A06-Y1",
+        "A06-Y01"
+      ]
+    },
+    {
+      "filament_code": "13506",
+      "filament_id": "GFA06",
+      "slicer_filament_name": "Bambu PLA Silk+",
+      "fila_type": "PLA Silk+",
+      "material": "PLA",
+      "subtype": "Silk+",
+      "color_name": "Candy Green",
+      "rgba": "018814FF",
+      "extra_colors": null,
+      "effect_type": "silk",
+      "variant_ids": [
+        "A06-G0",
+        "A06-G00"
+      ]
+    },
+    {
+      "filament_code": "13507",
+      "filament_id": "GFA06",
+      "slicer_filament_name": "Bambu PLA Silk+",
+      "fila_type": "PLA Silk+",
+      "material": "PLA",
+      "subtype": "Silk+",
+      "color_name": "Mint",
+      "rgba": "96DCB9FF",
+      "extra_colors": null,
+      "effect_type": "silk",
+      "variant_ids": [
+        "A06-G1",
+        "A06-G01"
+      ]
+    },
+    {
+      "filament_code": "13603",
+      "filament_id": "GFA06",
+      "slicer_filament_name": "Bambu PLA Silk+",
+      "fila_type": "PLA Silk+",
+      "material": "PLA",
+      "subtype": "Silk+",
+      "color_name": "Baby Blue",
+      "rgba": "A8C6EEFF",
+      "extra_colors": null,
+      "effect_type": "silk",
+      "variant_ids": [
+        "A06-B0",
+        "A06-B00"
+      ]
+    },
+    {
+      "filament_code": "13604",
+      "filament_id": "GFA06",
+      "slicer_filament_name": "Bambu PLA Silk+",
+      "fila_type": "PLA Silk+",
+      "material": "PLA",
+      "subtype": "Silk+",
+      "color_name": "Blue",
+      "rgba": "008BDAFF",
+      "extra_colors": null,
+      "effect_type": "silk",
+      "variant_ids": [
+        "A06-B1",
+        "A06-B01"
+      ]
+    },
+    {
+      "filament_code": "13702",
+      "filament_id": "GFA06",
+      "slicer_filament_name": "Bambu PLA Silk+",
+      "fila_type": "PLA Silk+",
+      "material": "PLA",
+      "subtype": "Silk+",
+      "color_name": "Purple",
+      "rgba": "8671CBFF",
+      "extra_colors": null,
+      "effect_type": "silk",
+      "variant_ids": [
+        "A06-P0",
+        "A06-P00"
+      ]
+    },
+    {
+      "filament_code": "13101",
+      "filament_id": "GFA08",
+      "slicer_filament_name": "Bambu PLA Sparkle",
+      "fila_type": "PLA Sparkle",
+      "material": "PLA",
+      "subtype": "Sparkle",
+      "color_name": "Onyx Black Sparkle",
+      "rgba": "2D2B28FF",
+      "extra_colors": null,
+      "effect_type": "sparkle",
+      "variant_ids": [
+        "A08-K2",
+        "A08-K02"
+      ]
+    },
+    {
+      "filament_code": "13102",
+      "filament_id": "GFA08",
+      "slicer_filament_name": "Bambu PLA Sparkle",
+      "fila_type": "PLA Sparkle",
+      "material": "PLA",
+      "subtype": "Sparkle",
+      "color_name": "Slate Gray Sparkle",
+      "rgba": "8E9089FF",
+      "extra_colors": null,
+      "effect_type": "sparkle",
+      "variant_ids": [
+        "A08-D5",
+        "A08-D05"
+      ]
+    },
+    {
+      "filament_code": "13200",
+      "filament_id": "GFA08",
+      "slicer_filament_name": "Bambu PLA Sparkle",
+      "fila_type": "PLA Sparkle",
+      "material": "PLA",
+      "subtype": "Sparkle",
+      "color_name": "Crimson Red Sparkle",
+      "rgba": "792B36FF",
+      "extra_colors": null,
+      "effect_type": "sparkle",
+      "variant_ids": [
+        "A08-R2",
+        "A08-R02"
+      ]
+    },
+    {
+      "filament_code": "13402",
+      "filament_id": "GFA08",
+      "slicer_filament_name": "Bambu PLA Sparkle",
+      "fila_type": "PLA Sparkle",
+      "material": "PLA",
+      "subtype": "Sparkle",
+      "color_name": "Classic Gold Sparkle",
+      "rgba": "CEA629FF",
+      "extra_colors": null,
+      "effect_type": "sparkle",
+      "variant_ids": [
+        "A08-Y1",
+        "A08-Y01"
+      ]
+    },
+    {
+      "filament_code": "13501",
+      "filament_id": "GFA08",
+      "slicer_filament_name": "Bambu PLA Sparkle",
+      "fila_type": "PLA Sparkle",
+      "material": "PLA",
+      "subtype": "Sparkle",
+      "color_name": "Alpine Green Sparkle",
+      "rgba": "3F5443FF",
+      "extra_colors": null,
+      "effect_type": "sparkle",
+      "variant_ids": [
+        "A08-G3",
+        "A08-G03"
+      ]
+    },
+    {
+      "filament_code": "13700",
+      "filament_id": "GFA08",
+      "slicer_filament_name": "Bambu PLA Sparkle",
+      "fila_type": "PLA Sparkle",
+      "material": "PLA",
+      "subtype": "Sparkle",
+      "color_name": "Royal Purple Sparkle",
+      "rgba": "483D8BFF",
+      "extra_colors": null,
+      "effect_type": "sparkle",
+      "variant_ids": [
+        "A08-B7",
+        "A08-B07"
+      ]
+    },
+    {
+      "filament_code": "12100",
+      "filament_id": "GFA09",
+      "slicer_filament_name": "Bambu PLA Tough",
+      "fila_type": "PLA Tough",
+      "material": "PLA",
+      "subtype": "Tough",
+      "color_name": "White",
+      "rgba": "F9F7F4FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A09-W3",
+        "A09-W03"
+      ]
+    },
+    {
+      "filament_code": "12101",
+      "filament_id": "GFA09",
+      "slicer_filament_name": "Bambu PLA Tough",
+      "fila_type": "PLA Tough",
+      "material": "PLA",
+      "subtype": "Tough",
+      "color_name": "Black",
+      "rgba": "25282AFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A09-K0",
+        "A09-K00"
+      ]
+    },
+    {
+      "filament_code": "12102",
+      "filament_id": "GFA09",
+      "slicer_filament_name": "Bambu PLA Tough",
+      "fila_type": "PLA Tough",
+      "material": "PLA",
+      "subtype": "Tough",
+      "color_name": "Gray",
+      "rgba": "515A6CFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A09-D0",
+        "A09-D00"
+      ]
+    },
+    {
+      "filament_code": "12103",
+      "filament_id": "GFA09",
+      "slicer_filament_name": "Bambu PLA Tough",
+      "fila_type": "PLA Tough",
+      "material": "PLA",
+      "subtype": "Tough",
+      "color_name": "Silver",
+      "rgba": "898D8DFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A09-D1",
+        "A09-D01"
+      ]
+    },
+    {
+      "filament_code": "12200",
+      "filament_id": "GFA09",
+      "slicer_filament_name": "Bambu PLA Tough",
+      "fila_type": "PLA Tough",
+      "material": "PLA",
+      "subtype": "Tough",
+      "color_name": "Vermilion Red",
+      "rgba": "DD3C22FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A09-R3",
+        "A09-R03"
+      ]
+    },
+    {
+      "filament_code": "12300",
+      "filament_id": "GFA09",
+      "slicer_filament_name": "Bambu PLA Tough",
+      "fila_type": "PLA Tough",
+      "material": "PLA",
+      "subtype": "Tough",
+      "color_name": "Orange",
+      "rgba": "FF7F41FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A09-A0",
+        "A09-A00"
+      ]
+    },
+    {
+      "filament_code": "12400",
+      "filament_id": "GFA09",
+      "slicer_filament_name": "Bambu PLA Tough",
+      "fila_type": "PLA Tough",
+      "material": "PLA",
+      "subtype": "Tough",
+      "color_name": "Yellow",
+      "rgba": "FEDB00FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A09-Y0",
+        "A09-Y00"
+      ]
+    },
+    {
+      "filament_code": "12500",
+      "filament_id": "GFA09",
+      "slicer_filament_name": "Bambu PLA Tough",
+      "fila_type": "PLA Tough",
+      "material": "PLA",
+      "subtype": "Tough",
+      "color_name": "Pine Green",
+      "rgba": "00482BFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A09-G4",
+        "A09-G04"
+      ]
+    },
+    {
+      "filament_code": "12600",
+      "filament_id": "GFA09",
+      "slicer_filament_name": "Bambu PLA Tough",
+      "fila_type": "PLA Tough",
+      "material": "PLA",
+      "subtype": "Tough",
+      "color_name": "Light Blue",
+      "rgba": "0085ADFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A09-B4",
+        "A09-B04"
+      ]
+    },
+    {
+      "filament_code": "12700",
+      "filament_id": "GFA09",
+      "slicer_filament_name": "Bambu PLA Tough",
+      "fila_type": "PLA Tough",
+      "material": "PLA",
+      "subtype": "Tough",
+      "color_name": "Lavender Blue",
+      "rgba": "6667ABFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A09-B5",
+        "A09-B05"
+      ]
+    },
+    {
+      "filament_code": "12104",
+      "filament_id": "GFA10",
+      "slicer_filament_name": "Bambu PLA Tough+",
+      "fila_type": "PLA Tough+",
+      "material": "PLA",
+      "subtype": "Tough+",
+      "color_name": "Black",
+      "rgba": "000000FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A10-K0",
+        "A10-K00"
+      ]
+    },
+    {
+      "filament_code": "12105",
+      "filament_id": "GFA10",
+      "slicer_filament_name": "Bambu PLA Tough+",
+      "fila_type": "PLA Tough+",
+      "material": "PLA",
+      "subtype": "Tough+",
+      "color_name": "Gray",
+      "rgba": "AFB1AEFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A10-D0",
+        "A10-D00"
+      ]
+    },
+    {
+      "filament_code": "12106",
+      "filament_id": "GFA10",
+      "slicer_filament_name": "Bambu PLA Tough+",
+      "fila_type": "PLA Tough+",
+      "material": "PLA",
+      "subtype": "Tough+",
+      "color_name": "Silver",
+      "rgba": "959698FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A10-D1",
+        "A10-D01"
+      ]
+    },
+    {
+      "filament_code": "12107",
+      "filament_id": "GFA10",
+      "slicer_filament_name": "Bambu PLA Tough+",
+      "fila_type": "PLA Tough+",
+      "material": "PLA",
+      "subtype": "Tough+",
+      "color_name": "White",
+      "rgba": "FFFFFFFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A10-W0",
+        "A10-W00"
+      ]
+    },
+    {
+      "filament_code": "12301",
+      "filament_id": "GFA10",
+      "slicer_filament_name": "Bambu PLA Tough+",
+      "fila_type": "PLA Tough+",
+      "material": "PLA",
+      "subtype": "Tough+",
+      "color_name": "Orange",
+      "rgba": "DC3A27FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A10-A0",
+        "A10-A00"
+      ]
+    },
+    {
+      "filament_code": "12401",
+      "filament_id": "GFA10",
+      "slicer_filament_name": "Bambu PLA Tough+",
+      "fila_type": "PLA Tough+",
+      "material": "PLA",
+      "subtype": "Tough+",
+      "color_name": "Yellow",
+      "rgba": "F4D53FFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A10-Y0",
+        "A10-Y00"
+      ]
+    },
+    {
+      "filament_code": "12601",
+      "filament_id": "GFA10",
+      "slicer_filament_name": "Bambu PLA Tough+",
+      "fila_type": "PLA Tough+",
+      "material": "PLA",
+      "subtype": "Tough+",
+      "color_name": "Cyan",
+      "rgba": "009BD8FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A10-B0",
+        "A10-B00"
+      ]
+    },
+    {
+      "filament_code": "13210",
+      "filament_id": "GFA17",
+      "slicer_filament_name": "Bambu PLA Translucent",
+      "fila_type": "PLA Translucent",
+      "material": "PLA",
+      "subtype": "Translucent",
+      "color_name": "Red",
+      "rgba": "B5001180",
+      "extra_colors": null,
+      "effect_type": "translucent",
+      "variant_ids": [
+        "A17-R0",
+        "A17-R00"
+      ]
+    },
+    {
+      "filament_code": "13211",
+      "filament_id": "GFA17",
+      "slicer_filament_name": "Bambu PLA Translucent",
+      "fila_type": "PLA Translucent",
+      "material": "PLA",
+      "subtype": "Translucent",
+      "color_name": "Cherry Pink",
+      "rgba": "F5B6CD80",
+      "extra_colors": null,
+      "effect_type": "translucent",
+      "variant_ids": [
+        "A17-R1",
+        "A17-R01"
+      ]
+    },
+    {
+      "filament_code": "13301",
+      "filament_id": "GFA17",
+      "slicer_filament_name": "Bambu PLA Translucent",
+      "fila_type": "PLA Translucent",
+      "material": "PLA",
+      "subtype": "Translucent",
+      "color_name": "Orange",
+      "rgba": "F74E0280",
+      "extra_colors": null,
+      "effect_type": "translucent",
+      "variant_ids": [
+        "A17-A0",
+        "A17-A00"
+      ]
+    },
+    {
+      "filament_code": "13410",
+      "filament_id": "GFA17",
+      "slicer_filament_name": "Bambu PLA Translucent",
+      "fila_type": "PLA Translucent",
+      "material": "PLA",
+      "subtype": "Translucent",
+      "color_name": "Mellow Yellow",
+      "rgba": "F5DBAB80",
+      "extra_colors": null,
+      "effect_type": "translucent",
+      "variant_ids": [
+        "A17-Y0",
+        "A17-Y00"
+      ]
+    },
+    {
+      "filament_code": "13510",
+      "filament_id": "GFA17",
+      "slicer_filament_name": "Bambu PLA Translucent",
+      "fila_type": "PLA Translucent",
+      "material": "PLA",
+      "subtype": "Translucent",
+      "color_name": "Light Jade",
+      "rgba": "96D8AF80",
+      "extra_colors": null,
+      "effect_type": "translucent",
+      "variant_ids": [
+        "A17-G0",
+        "A17-G00"
+      ]
+    },
+    {
+      "filament_code": "13610",
+      "filament_id": "GFA17",
+      "slicer_filament_name": "Bambu PLA Translucent",
+      "fila_type": "PLA Translucent",
+      "material": "PLA",
+      "subtype": "Translucent",
+      "color_name": "Ice Blue",
+      "rgba": "B8CDE980",
+      "extra_colors": null,
+      "effect_type": "translucent",
+      "variant_ids": [
+        "A17-B0",
+        "A17-B00"
+      ]
+    },
+    {
+      "filament_code": "13611",
+      "filament_id": "GFA17",
+      "slicer_filament_name": "Bambu PLA Translucent",
+      "fila_type": "PLA Translucent",
+      "material": "PLA",
+      "subtype": "Translucent",
+      "color_name": "Blue",
+      "rgba": "0047BB80",
+      "extra_colors": null,
+      "effect_type": "translucent",
+      "variant_ids": [
+        "A17-B1",
+        "A17-B01"
+      ]
+    },
+    {
+      "filament_code": "13612",
+      "filament_id": "GFA17",
+      "slicer_filament_name": "Bambu PLA Translucent",
+      "fila_type": "PLA Translucent",
+      "material": "PLA",
+      "subtype": "Translucent",
+      "color_name": "Teal",
+      "rgba": "009FA180",
+      "extra_colors": null,
+      "effect_type": "translucent",
+      "variant_ids": [
+        "A17-B2",
+        "A17-B02"
+      ]
+    },
+    {
+      "filament_code": "13710",
+      "filament_id": "GFA17",
+      "slicer_filament_name": "Bambu PLA Translucent",
+      "fila_type": "PLA Translucent",
+      "material": "PLA",
+      "subtype": "Translucent",
+      "color_name": "Purple",
+      "rgba": "8344B080",
+      "extra_colors": null,
+      "effect_type": "translucent",
+      "variant_ids": [
+        "A17-P0",
+        "A17-P00"
+      ]
+    },
+    {
+      "filament_code": "13711",
+      "filament_id": "GFA17",
+      "slicer_filament_name": "Bambu PLA Translucent",
+      "fila_type": "PLA Translucent",
+      "material": "PLA",
+      "subtype": "Translucent",
+      "color_name": "Lavender",
+      "rgba": "B8ACD680",
+      "extra_colors": null,
+      "effect_type": "translucent",
+      "variant_ids": [
+        "A17-P1",
+        "A17-P01"
+      ]
+    },
+    {
+      "filament_code": "13106",
+      "filament_id": "GFA16",
+      "slicer_filament_name": "Bambu PLA Wood",
+      "fila_type": "PLA Wood",
+      "material": "PLA",
+      "subtype": "Wood",
+      "color_name": "White Oak",
+      "rgba": "D6CCA3FF",
+      "extra_colors": null,
+      "effect_type": "wood",
+      "variant_ids": [
+        "A16-W0",
+        "A16-W00"
+      ]
+    },
+    {
+      "filament_code": "13107",
+      "filament_id": "GFA16",
+      "slicer_filament_name": "Bambu PLA Wood",
+      "fila_type": "PLA Wood",
+      "material": "PLA",
+      "subtype": "Wood",
+      "color_name": "Black Walnut",
+      "rgba": "4F3F24FF",
+      "extra_colors": null,
+      "effect_type": "wood",
+      "variant_ids": [
+        "A16-K0",
+        "A16-K00",
+        "A16-R0"
+      ]
+    },
+    {
+      "filament_code": "13204",
+      "filament_id": "GFA16",
+      "slicer_filament_name": "Bambu PLA Wood",
+      "fila_type": "PLA Wood",
+      "material": "PLA",
+      "subtype": "Wood",
+      "color_name": "Rosewood",
+      "rgba": "4C241CFF",
+      "extra_colors": null,
+      "effect_type": "wood",
+      "variant_ids": [
+        "A16-R0",
+        "A16-R00"
+      ]
+    },
+    {
+      "filament_code": "13403",
+      "filament_id": "GFA16",
+      "slicer_filament_name": "Bambu PLA Wood",
+      "fila_type": "PLA Wood",
+      "material": "PLA",
+      "subtype": "Wood",
+      "color_name": "Ochre Yellow",
+      "rgba": "C98935FF",
+      "extra_colors": null,
+      "effect_type": "wood",
+      "variant_ids": [
+        "A16-Y0",
+        "A16-Y00"
+      ]
+    },
+    {
+      "filament_code": "13505",
+      "filament_id": "GFA16",
+      "slicer_filament_name": "Bambu PLA Wood",
+      "fila_type": "PLA Wood",
+      "material": "PLA",
+      "subtype": "Wood",
+      "color_name": "Classic Birch",
+      "rgba": "918669FF",
+      "extra_colors": null,
+      "effect_type": "wood",
+      "variant_ids": [
+        "A16-G0",
+        "A16-G00"
+      ]
+    },
+    {
+      "filament_code": "13801",
+      "filament_id": "GFA16",
+      "slicer_filament_name": "Bambu PLA Wood",
+      "fila_type": "PLA Wood",
+      "material": "PLA",
+      "subtype": "Wood",
+      "color_name": "Clay Brown",
+      "rgba": "995F11FF",
+      "extra_colors": null,
+      "effect_type": "wood",
+      "variant_ids": [
+        "A16-N0",
+        "A16-N00"
+      ]
+    },
+    {
+      "filament_code": "14100",
+      "filament_id": "GFA50",
+      "slicer_filament_name": "Bambu PLA-CF",
+      "fila_type": "PLA-CF",
+      "material": "PLA-CF",
+      "subtype": null,
+      "color_name": "Black",
+      "rgba": "000000FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A50-K0",
+        "A50-K00"
+      ]
+    },
+    {
+      "filament_code": "14101",
+      "filament_id": "GFA50",
+      "slicer_filament_name": "Bambu PLA-CF",
+      "fila_type": "PLA-CF",
+      "material": "PLA-CF",
+      "subtype": null,
+      "color_name": "Lava Gray",
+      "rgba": "4D5054FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A50-D6",
+        "A50-D06"
+      ]
+    },
+    {
+      "filament_code": "14200",
+      "filament_id": "GFA50",
+      "slicer_filament_name": "Bambu PLA-CF",
+      "fila_type": "PLA-CF",
+      "material": "PLA-CF",
+      "subtype": null,
+      "color_name": "Burgundy Red",
+      "rgba": "951E23FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A50-R4",
+        "A50-R04"
+      ]
+    },
+    {
+      "filament_code": "14500",
+      "filament_id": "GFA50",
+      "slicer_filament_name": "Bambu PLA-CF",
+      "fila_type": "PLA-CF",
+      "material": "PLA-CF",
+      "subtype": null,
+      "color_name": "Matcha Green",
+      "rgba": "5C9748FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A50-G7",
+        "A50-G07"
+      ]
+    },
+    {
+      "filament_code": "14600",
+      "filament_id": "GFA50",
+      "slicer_filament_name": "Bambu PLA-CF",
+      "fila_type": "PLA-CF",
+      "material": "PLA-CF",
+      "subtype": null,
+      "color_name": "Jeans Blue",
+      "rgba": "6E88BCFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A50-B9",
+        "A50-B09"
+      ]
+    },
+    {
+      "filament_code": "14601",
+      "filament_id": "GFA50",
+      "slicer_filament_name": "Bambu PLA-CF",
+      "fila_type": "PLA-CF",
+      "material": "PLA-CF",
+      "subtype": null,
+      "color_name": "Royal Blue",
+      "rgba": "2842ADFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A50-B6",
+        "A50-B06"
+      ]
+    },
+    {
+      "filament_code": "14700",
+      "filament_id": "GFA50",
+      "slicer_filament_name": "Bambu PLA-CF",
+      "fila_type": "PLA-CF",
+      "material": "PLA-CF",
+      "subtype": null,
+      "color_name": "Iris Purple",
+      "rgba": "69398EFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "A50-P7",
+        "A50-P07"
+      ]
+    },
+    {
+      "filament_code": "73100",
+      "filament_id": "GFN06",
+      "slicer_filament_name": "Bambu PPA-CF",
+      "fila_type": "PPA-CF",
+      "material": "PPA-CF",
+      "subtype": null,
+      "color_name": "Black",
+      "rgba": "000000FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "N06-K0",
+        "N06-K00"
+      ]
+    },
+    {
+      "filament_code": "76100",
+      "filament_id": "GFT02",
+      "slicer_filament_name": "Bambu PPS-CF",
+      "fila_type": "PPS-CF",
+      "material": "PPS-CF",
+      "subtype": null,
+      "color_name": "Black",
+      "rgba": "000000FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "T02-K0",
+        "T02-K00"
+      ]
+    },
+    {
+      "filament_code": "66400",
+      "filament_id": "GFS04",
+      "slicer_filament_name": "Bambu PVA",
+      "fila_type": "PVA",
+      "material": "PVA",
+      "subtype": null,
+      "color_name": "Clear",
+      "rgba": "F0F1A880",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "S04-Y0",
+        "S04-Y00"
+      ]
+    },
+    {
+      "filament_code": "66100",
+      "filament_id": "GFS06",
+      "slicer_filament_name": "Bambu Support for ABS",
+      "fila_type": "Support for ABS",
+      "material": "ABS",
+      "subtype": "Support for ABS",
+      "color_name": "White",
+      "rgba": "FFFFFFFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "S06-W0",
+        "S06-W00"
+      ]
+    },
+    {
+      "filament_code": "65500",
+      "filament_id": "GFS03",
+      "slicer_filament_name": "Bambu Support For PA/PET",
+      "fila_type": "Support for PA/PET",
+      "material": "PA",
+      "subtype": "Support for PA/PET",
+      "color_name": "Green",
+      "rgba": "C0DF16FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "S03-G1",
+        "S03-G01",
+        "S01-G1"
+      ]
+    },
+    {
+      "filament_code": "65104",
+      "filament_id": "GFS02",
+      "slicer_filament_name": "Bambu Support For PLA",
+      "fila_type": "Support for PLA",
+      "material": "PLA",
+      "subtype": "Support for PLA",
+      "color_name": "White",
+      "rgba": "FFFFFFFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "S02-W1",
+        "S02-W01"
+      ]
+    },
+    {
+      "filament_code": "65102",
+      "filament_id": "GFS05",
+      "slicer_filament_name": "Bambu Support For PLA/PETG",
+      "fila_type": "Support for PLA/PETG",
+      "material": "PLA",
+      "subtype": "Support for PLA/PETG",
+      "color_name": "Nature",
+      "rgba": "00000000",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "S05-C0",
+        "S05-C00"
+      ]
+    },
+    {
+      "filament_code": "65103",
+      "filament_id": "GFS05",
+      "slicer_filament_name": "Bambu Support For PLA/PETG",
+      "fila_type": "Support for PLA/PETG",
+      "material": "PLA",
+      "subtype": "Support for PLA/PETG",
+      "color_name": "Black",
+      "rgba": "000000FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "S05-K0",
+        "S05-K00",
+        "S05-C0"
+      ]
+    },
+    {
+      "filament_code": "56100",
+      "filament_id": "GFU06",
+      "slicer_filament_name": "Bambu TPU 75A",
+      "fila_type": "TPU 75A (2.85mm)",
+      "material": "TPU",
+      "subtype": "75A (2.85mm)",
+      "color_name": "Black",
+      "rgba": "000000FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U06-K00"
+      ]
+    },
+    {
+      "filament_code": "56200",
+      "filament_id": "GFU06",
+      "slicer_filament_name": "Bambu TPU 75A",
+      "fila_type": "TPU 75A (2.85mm)",
+      "material": "TPU",
+      "subtype": "75A (2.85mm)",
+      "color_name": "Red",
+      "rgba": "E4002BFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U06-R00"
+      ]
+    },
+    {
+      "filament_code": "56300",
+      "filament_id": "GFU06",
+      "slicer_filament_name": "Bambu TPU 75A",
+      "fila_type": "TPU 75A (2.85mm)",
+      "material": "TPU",
+      "subtype": "75A (2.85mm)",
+      "color_name": "Mandarin Orange",
+      "rgba": "FFA06AFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U06-A00"
+      ]
+    },
+    {
+      "filament_code": "56400",
+      "filament_id": "GFU06",
+      "slicer_filament_name": "Bambu TPU 75A",
+      "fila_type": "TPU 75A (2.85mm)",
+      "material": "TPU",
+      "subtype": "75A (2.85mm)",
+      "color_name": "Lemon Yellow",
+      "rgba": "FBDB65FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U06-Y00"
+      ]
+    },
+    {
+      "filament_code": "56401",
+      "filament_id": "GFU06",
+      "slicer_filament_name": "Bambu TPU 75A",
+      "fila_type": "TPU 75A (2.85mm)",
+      "material": "TPU",
+      "subtype": "75A (2.85mm)",
+      "color_name": "Dark Ivory",
+      "rgba": "F1E6B2FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U06-Y01"
+      ]
+    },
+    {
+      "filament_code": "56500",
+      "filament_id": "GFU06",
+      "slicer_filament_name": "Bambu TPU 75A",
+      "fila_type": "TPU 75A (2.85mm)",
+      "material": "TPU",
+      "subtype": "75A (2.85mm)",
+      "color_name": "Dark Green",
+      "rgba": "617354FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U06-G00"
+      ]
+    },
+    {
+      "filament_code": "56501",
+      "filament_id": "GFU06",
+      "slicer_filament_name": "Bambu TPU 75A",
+      "fila_type": "TPU 75A (2.85mm)",
+      "material": "TPU",
+      "subtype": "75A (2.85mm)",
+      "color_name": "Grass Green",
+      "rgba": "7CCC6CFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U06-G01"
+      ]
+    },
+    {
+      "filament_code": "56600",
+      "filament_id": "GFU06",
+      "slicer_filament_name": "Bambu TPU 75A",
+      "fila_type": "TPU 75A (2.85mm)",
+      "material": "TPU",
+      "subtype": "75A (2.85mm)",
+      "color_name": "Cyan",
+      "rgba": "00A3E1FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U06-B00"
+      ]
+    },
+    {
+      "filament_code": "56700",
+      "filament_id": "GFU06",
+      "slicer_filament_name": "Bambu TPU 75A",
+      "fila_type": "TPU 75A (2.85mm)",
+      "material": "TPU",
+      "subtype": "75A (2.85mm)",
+      "color_name": "Purple",
+      "rgba": "AD96DCFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U06-P00"
+      ]
+    },
+    {
+      "filament_code": "56701",
+      "filament_id": "GFU06",
+      "slicer_filament_name": "Bambu TPU 75A",
+      "fila_type": "TPU 75A (2.85mm)",
+      "material": "TPU",
+      "subtype": "75A (2.85mm)",
+      "color_name": "Pink",
+      "rgba": "FABBCBFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U06-P01"
+      ]
+    },
+    {
+      "filament_code": "51107",
+      "filament_id": "GFU04",
+      "slicer_filament_name": "Bambu TPU 85A",
+      "fila_type": "TPU 85A",
+      "material": "TPU",
+      "subtype": "85A",
+      "color_name": "Black",
+      "rgba": "000000FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U04-K0",
+        "U04-K00"
+      ]
+    },
+    {
+      "filament_code": "51201",
+      "filament_id": "GFU04",
+      "slicer_filament_name": "Bambu TPU 85A",
+      "fila_type": "TPU 85A",
+      "material": "TPU",
+      "subtype": "85A",
+      "color_name": "Rose Beige/Flesh",
+      "rgba": "F3CFB2FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U04-P0",
+        "U04-P00"
+      ]
+    },
+    {
+      "filament_code": "51305",
+      "filament_id": "GFU04",
+      "slicer_filament_name": "Bambu TPU 85A",
+      "fila_type": "TPU 85A",
+      "material": "TPU",
+      "subtype": "85A",
+      "color_name": "Neon Orange",
+      "rgba": "F68B1BFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U04-A1",
+        "U04-A01"
+      ]
+    },
+    {
+      "filament_code": "51500",
+      "filament_id": "GFU04",
+      "slicer_filament_name": "Bambu TPU 85A",
+      "fila_type": "TPU 85A",
+      "material": "TPU",
+      "subtype": "85A",
+      "color_name": "Light Cyan",
+      "rgba": "C3E2D6FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U04-G0",
+        "U04-G00"
+      ]
+    },
+    {
+      "filament_code": "51501",
+      "filament_id": "GFU04",
+      "slicer_filament_name": "Bambu TPU 85A",
+      "fila_type": "TPU 85A",
+      "material": "TPU",
+      "subtype": "85A",
+      "color_name": "Lime Green",
+      "rgba": "CDEA80FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U04-G1",
+        "U04-G01"
+      ]
+    },
+    {
+      "filament_code": "51103",
+      "filament_id": "GFU03",
+      "slicer_filament_name": "Bambu TPU 90A",
+      "fila_type": "TPU 90A",
+      "material": "TPU",
+      "subtype": "90A",
+      "color_name": "Black",
+      "rgba": "000000FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U03-K0",
+        "U03-K00"
+      ]
+    },
+    {
+      "filament_code": "51105",
+      "filament_id": "GFU03",
+      "slicer_filament_name": "Bambu TPU 90A",
+      "fila_type": "TPU 90A",
+      "material": "TPU",
+      "subtype": "90A",
+      "color_name": "White",
+      "rgba": "FFFFFFFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U03-W1",
+        "U03-W01"
+      ]
+    },
+    {
+      "filament_code": "51106",
+      "filament_id": "GFU03",
+      "slicer_filament_name": "Bambu TPU 90A",
+      "fila_type": "TPU 90A",
+      "material": "TPU",
+      "subtype": "90A",
+      "color_name": "Quicksilver",
+      "rgba": "9EA2A2FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U03-D0",
+        "U03-D00"
+      ]
+    },
+    {
+      "filament_code": "51601",
+      "filament_id": "GFU03",
+      "slicer_filament_name": "Bambu TPU 90A",
+      "fila_type": "TPU 90A",
+      "material": "TPU",
+      "subtype": "90A",
+      "color_name": "Crystal Blue",
+      "rgba": "7EB4E180",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U03-B1",
+        "U03-B01"
+      ]
+    },
+    {
+      "filament_code": "51700",
+      "filament_id": "GFU03",
+      "slicer_filament_name": "Bambu TPU 90A",
+      "fila_type": "TPU 90A",
+      "material": "TPU",
+      "subtype": "90A",
+      "color_name": "Grape Jelly",
+      "rgba": "D6ABFF80",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U03-P1",
+        "U03-P01"
+      ]
+    },
+    {
+      "filament_code": "51800",
+      "filament_id": "GFU03",
+      "slicer_filament_name": "Bambu TPU 90A",
+      "fila_type": "TPU 90A",
+      "material": "TPU",
+      "subtype": "90A",
+      "color_name": "Cocoa Brown",
+      "rgba": "5C4738FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U03-N0",
+        "U03-N00"
+      ]
+    },
+    {
+      "filament_code": "51900",
+      "filament_id": "GFU03",
+      "slicer_filament_name": "Bambu TPU 90A",
+      "fila_type": "TPU 90A",
+      "material": "TPU",
+      "subtype": "Gradient",
+      "color_name": "Frozen",
+      "rgba": "40B6E4FF",
+      "extra_colors": "40b6e4ff,ffffffff",
+      "effect_type": "gradient",
+      "variant_ids": [
+        "U03-M0",
+        "U03-M00"
+      ]
+    },
+    {
+      "filament_code": "51901",
+      "filament_id": "GFU03",
+      "slicer_filament_name": "Bambu TPU 90A",
+      "fila_type": "TPU 90A",
+      "material": "TPU",
+      "subtype": "Gradient",
+      "color_name": "Blaze",
+      "rgba": "D21B3CFF",
+      "extra_colors": "d21b3cff,f1aaa8ff",
+      "effect_type": "gradient",
+      "variant_ids": [
+        "U03-M1",
+        "U03-M01"
+      ]
+    },
+    {
+      "filament_code": "50100",
+      "filament_id": "GFU01",
+      "slicer_filament_name": "Bambu TPU 95A",
+      "fila_type": "TPU 95A",
+      "material": "TPU",
+      "subtype": "95A",
+      "color_name": "White",
+      "rgba": "FFFFFFFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U01-W0",
+        "U01-W00"
+      ]
+    },
+    {
+      "filament_code": "50101",
+      "filament_id": "GFU01",
+      "slicer_filament_name": "Bambu TPU 95A",
+      "fila_type": "TPU 95A",
+      "material": "TPU",
+      "subtype": "95A",
+      "color_name": "Black",
+      "rgba": "000000FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U01-K0",
+        "U01-K00"
+      ]
+    },
+    {
+      "filament_code": "51100",
+      "filament_id": "GFU00",
+      "slicer_filament_name": "Bambu TPU 95A HF",
+      "fila_type": "TPU 95A HF",
+      "material": "TPU",
+      "subtype": "95A HF",
+      "color_name": "Black",
+      "rgba": "101820FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U00-K0",
+        "U00-K00"
+      ]
+    },
+    {
+      "filament_code": "51101",
+      "filament_id": "GFU00",
+      "slicer_filament_name": "Bambu TPU 95A HF",
+      "fila_type": "TPU 95A HF",
+      "material": "TPU",
+      "subtype": "95A HF",
+      "color_name": "Gray",
+      "rgba": "898D8DFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U00-D0",
+        "U00-D00"
+      ]
+    },
+    {
+      "filament_code": "51102",
+      "filament_id": "GFU00",
+      "slicer_filament_name": "Bambu TPU 95A HF",
+      "fila_type": "TPU 95A HF",
+      "material": "TPU",
+      "subtype": "95A HF",
+      "color_name": "White",
+      "rgba": "FFFFFFFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U00-W0",
+        "U00-W00"
+      ]
+    },
+    {
+      "filament_code": "51200",
+      "filament_id": "GFU00",
+      "slicer_filament_name": "Bambu TPU 95A HF",
+      "fila_type": "TPU 95A HF",
+      "material": "TPU",
+      "subtype": "95A HF",
+      "color_name": "Red",
+      "rgba": "C8102EFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U00-R0",
+        "U00-R00"
+      ]
+    },
+    {
+      "filament_code": "51400",
+      "filament_id": "GFU00",
+      "slicer_filament_name": "Bambu TPU 95A HF",
+      "fila_type": "TPU 95A HF",
+      "material": "TPU",
+      "subtype": "95A HF",
+      "color_name": "Yellow",
+      "rgba": "F3E600FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U00-Y0",
+        "U00-Y00"
+      ]
+    },
+    {
+      "filament_code": "51600",
+      "filament_id": "GFU00",
+      "slicer_filament_name": "Bambu TPU 95A HF",
+      "fila_type": "TPU 95A HF",
+      "material": "TPU",
+      "subtype": "95A HF",
+      "color_name": "Blue",
+      "rgba": "0072CEFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U00-B0",
+        "U00-B00"
+      ]
+    },
+    {
+      "filament_code": "53100",
+      "filament_id": "GFU02",
+      "slicer_filament_name": "Bambu TPU for AMS",
+      "fila_type": "TPU for AMS",
+      "material": "TPU",
+      "subtype": "for AMS",
+      "color_name": "White",
+      "rgba": "FFFFFFFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U02-W0",
+        "U02-W00"
+      ]
+    },
+    {
+      "filament_code": "53101",
+      "filament_id": "GFU02",
+      "slicer_filament_name": "Bambu TPU for AMS",
+      "fila_type": "TPU for AMS",
+      "material": "TPU",
+      "subtype": "for AMS",
+      "color_name": "Black",
+      "rgba": "000000FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U02-K0",
+        "U02-K00"
+      ]
+    },
+    {
+      "filament_code": "53102",
+      "filament_id": "GFU02",
+      "slicer_filament_name": "Bambu TPU for AMS",
+      "fila_type": "TPU for AMS",
+      "material": "TPU",
+      "subtype": "for AMS",
+      "color_name": "Gray",
+      "rgba": "939393FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U02-D0",
+        "U02-D00"
+      ]
+    },
+    {
+      "filament_code": "53200",
+      "filament_id": "GFU02",
+      "slicer_filament_name": "Bambu TPU for AMS",
+      "fila_type": "TPU for AMS",
+      "material": "TPU",
+      "subtype": "for AMS",
+      "color_name": "Red",
+      "rgba": "ED0000FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U02-R0",
+        "U02-R00"
+      ]
+    },
+    {
+      "filament_code": "53400",
+      "filament_id": "GFU02",
+      "slicer_filament_name": "Bambu TPU for AMS",
+      "fila_type": "TPU for AMS",
+      "material": "TPU",
+      "subtype": "for AMS",
+      "color_name": "Yellow",
+      "rgba": "F9EF41FF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U02-Y0",
+        "U02-Y00"
+      ]
+    },
+    {
+      "filament_code": "53500",
+      "filament_id": "GFU02",
+      "slicer_filament_name": "Bambu TPU for AMS",
+      "fila_type": "TPU for AMS",
+      "material": "TPU",
+      "subtype": "for AMS",
+      "color_name": "Neon Green",
+      "rgba": "90FF1AFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U02-G0",
+        "U02-G00"
+      ]
+    },
+    {
+      "filament_code": "53600",
+      "filament_id": "GFU02",
+      "slicer_filament_name": "Bambu TPU for AMS",
+      "fila_type": "TPU for AMS",
+      "material": "TPU",
+      "subtype": "for AMS",
+      "color_name": "Blue",
+      "rgba": "5898DDFF",
+      "extra_colors": null,
+      "effect_type": null,
+      "variant_ids": [
+        "U02-B0",
+        "U02-B00"
+      ]
+    }
+  ],
+  "barcodes": {
+    "6975337031024": {
+      "filament_code": "10100",
+      "is_refill": false
+    },
+    "0850076167509": {
+      "filament_code": "10100",
+      "is_refill": false
+    },
+    "6937285503824": {
+      "filament_code": "10100",
+      "is_refill": false
+    },
+    "921050238242": {
+      "filament_code": "10100",
+      "is_refill": false
+    },
+    "6975337034957": {
+      "filament_code": "10100",
+      "is_refill": true
+    },
+    "0850076167493": {
+      "filament_code": "10100",
+      "is_refill": true
+    },
+    "6937285503923": {
+      "filament_code": "10100",
+      "is_refill": true
+    },
+    "921032457945": {
+      "filament_code": "10100",
+      "is_refill": true
+    }
+  }
+}

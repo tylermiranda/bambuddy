@@ -3665,3 +3665,100 @@ async def create_spool_from_slot(
         .execution_options(populate_existing=True)
     )
     return result.scalar_one()
+
+
+# ── Official Bambu Lab Filament Box / Barcode / Code Scanner ─────────────────
+
+
+class BambuScanRequest(BaseModel):
+    raw_input: str = Field(..., max_length=2000)
+
+
+class BambuLearnBarcodeRequest(BaseModel):
+    barcode: str = Field(..., min_length=6, max_length=64)
+    filament_code: str = Field(..., min_length=4, max_length=16)
+    is_refill: bool = False
+    label_weight: int = Field(1000, ge=100, le=10000)
+
+
+@router.get("/bambu-catalog")
+async def list_bambu_filament_catalog(
+    q: str = Query("", max_length=200),
+    limit: int = Query(50, ge=1, le=400),
+    _: User | None = RequirePermissionIfAuthEnabled(Permission.INVENTORY_READ),
+):
+    """Search the official Bambu Lab filament catalog by 5-digit code, SKU, material, or color."""
+    from backend.app.services.bambu_filament_scanner import search_bambu_catalog
+
+    return {"filaments": search_bambu_catalog(q, limit=limit)}
+
+
+@router.post("/scan-bambu")
+async def scan_bambu_filament(
+    req: BambuScanRequest,
+    db: AsyncSession = Depends(get_db, scope="function"),
+    _: User | None = RequirePermissionIfAuthEnabled(Permission.INVENTORY_READ),
+):
+    """Resolve a scanned Bambu barcode, SKU, 5-digit filament code, or box label text."""
+    from backend.app.services.bambu_filament_scanner import resolve_bambu_scan
+
+    return await resolve_bambu_scan(db, req.raw_input)
+
+
+@router.post("/scan-bambu/learn-barcode")
+async def learn_bambu_barcode(
+    req: BambuLearnBarcodeRequest,
+    db: AsyncSession = Depends(get_db, scope="function"),
+    _: User | None = RequireAnyPermissionIfAuthEnabled(Permission.INVENTORY_CREATE, Permission.INVENTORY_UPDATE),
+):
+    """Persist a retail EAN-13/UPC barcode -> Bambu 5-digit filament code mapping."""
+    from backend.app.services.bambu_filament_scanner import (
+        resolve_bambu_scan,
+        save_learned_barcode_mapping,
+    )
+
+    try:
+        await save_learned_barcode_mapping(
+            db,
+            barcode=req.barcode,
+            filament_code=req.filament_code,
+            is_refill=req.is_refill,
+            label_weight=req.label_weight,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return await resolve_bambu_scan(db, req.barcode)
+
+
+@router.post("/scan-bambu/image")
+async def scan_bambu_filament_image(
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db, scope="function"),
+    _: User | None = RequirePermissionIfAuthEnabled(Permission.INVENTORY_READ),
+):
+    """Decode a barcode/QR from an uploaded box/spool sticker photo and resolve it."""
+    from backend.app.services.bambu_filament_scanner import (
+        decode_barcodes_from_image_bytes,
+        resolve_bambu_scan,
+    )
+
+    max_bytes = 10 * 1024 * 1024
+    raw = bytearray()
+    while chunk := await file.read(65536):
+        raw.extend(chunk)
+        if len(raw) > max_bytes:
+            raise HTTPException(status_code=413, detail="Image exceeds 10 MB limit")
+
+    decoded = decode_barcodes_from_image_bytes(bytes(raw))
+    for candidate in decoded:
+        res = await resolve_bambu_scan(db, candidate)
+        if res.get("matched") or res.get("match_type") == "unmapped_barcode":
+            return {**res, "decoded_barcodes": decoded}
+
+    if decoded:
+        res = await resolve_bambu_scan(db, decoded[0])
+        return {**res, "decoded_barcodes": decoded}
+
+    res = await resolve_bambu_scan(db, "")
+    return {**res, "decoded_barcodes": []}
+

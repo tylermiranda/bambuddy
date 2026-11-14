@@ -4146,6 +4146,34 @@ export interface PreviewSpoolLabelRequest {
   fields: SpoolLabelField[];
 }
 
+export interface BambuCatalogFilament {
+  filament_code: string;
+  filament_id: string;
+  slicer_filament_name: string;
+  fila_type: string;
+  material: string;
+  subtype: string | null;
+  color_name: string;
+  rgba: string;
+  extra_colors: string | null;
+  effect_type: string | null;
+  variant_ids: string[];
+}
+
+export interface BambuScanResponse {
+  matched: boolean;
+  match_type: 'filament_code' | 'sku' | 'barcode' | 'unmapped_barcode' | 'text' | 'none';
+  raw_input: string;
+  detected_barcode: string | null;
+  is_refill: boolean;
+  label_weight: number;
+  core_weight: number;
+  core_weight_catalog_id: number | null;
+  filament: BambuCatalogFilament | null;
+  candidates: BambuCatalogFilament[];
+  decoded_barcodes?: string[];
+}
+
 export interface InventorySpool {
   id: number;
   material: string;
@@ -7713,6 +7741,43 @@ export const api = {
     }),
   getFilamentPresets: () =>
     request<SlicerSetting[]>('/cloud/filaments'),
+  searchBambuCatalog: (q = '', limit = 50) =>
+    request<{ filaments: BambuCatalogFilament[] }>(
+      `/inventory/bambu-catalog?q=${encodeURIComponent(q)}&limit=${limit}`,
+    ),
+  scanBambuFilament: (rawInput: string) =>
+    request<BambuScanResponse>('/inventory/scan-bambu', {
+      method: 'POST',
+      body: JSON.stringify({ raw_input: rawInput }),
+    }),
+  learnBambuBarcode: (data: {
+    barcode: string;
+    filament_code: string;
+    is_refill?: boolean;
+    label_weight?: number;
+  }) =>
+    request<BambuScanResponse>('/inventory/scan-bambu/learn-barcode', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  scanBambuImage: async (file: File): Promise<BambuScanResponse> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const headers: Record<string, string> = {};
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+    const response = await fetch(`${API_BASE}/inventory/scan-bambu/image`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || `HTTP ${response.status}`);
+    }
+    return response.json();
+  },
 
   // Spoolman Inventory proxy (unified UI when Spoolman is enabled)
   getSpoolmanInventorySpools: (includeArchived = false) =>

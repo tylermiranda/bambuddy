@@ -25,10 +25,12 @@ function LiveScanner({
   onFrame,
   onError,
   paused,
+  includeBarcodes = false,
 }: {
   onFrame: (text: string | null) => void;
   onError: (issue: CameraIssue) => void;
   paused: boolean;
+  includeBarcodes?: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const onFrameRef = useRef(onFrame);
@@ -46,7 +48,7 @@ function LiveScanner({
     let lastScan = 0;
     const INTERVAL_MS = 200;
     const canvas = document.createElement('canvas'); // reused across frames
-    const decodeFrame = createFrameDecoder();
+    const decodeFrame = createFrameDecoder(includeBarcodes);
 
     const tick = () => {
       if (cancelled) return;
@@ -106,7 +108,7 @@ function LiveScanner({
       if (raf) cancelAnimationFrame(raf);
       stream?.getTracks().forEach((tr) => tr.stop());
     };
-  }, []);
+  }, [includeBarcodes]);
 
   return <video ref={videoRef} muted playsInline className="w-full aspect-square rounded-lg bg-black object-cover" />;
 }
@@ -120,15 +122,28 @@ interface QrSpoolScannerProps {
   error: string | null;
   /** Where the scanned spool will go, shown above the camera. */
   targetLabel?: string;
+  /** Also decode 1D box/spool barcodes (Code-128, EAN-13, UPC-A) in addition to 2D QR codes. */
+  includeBarcodes?: boolean;
+  /** Optional server-side fallback when client-side photo decoding finds no barcode/QR. Returns true if handled. */
+  onPhotoFile?: (file: File) => Promise<boolean>;
+  /** Custom instruction shown below the camera preview. */
+  instructionText?: string;
 }
 
 /**
- * Scan a spool's label QR (#1574): the live camera preview, and a native-camera
- * photo for small or dense QRs the preview can't focus on. Photos are decoded in
- * the browser and never uploaded. Shared by every dialog that assigns a scanned
- * spool, so they scan the same way.
+ * Scan a spool's label QR (#1574) or official Bambu filament barcode: the live
+ * camera preview, and a native-camera photo for small or dense codes the preview
+ * can't focus on.
  */
-export function QrSpoolScanner({ onDecode, busy, error, targetLabel }: QrSpoolScannerProps) {
+export function QrSpoolScanner({
+  onDecode,
+  busy,
+  error,
+  targetLabel,
+  includeBarcodes = false,
+  onPhotoFile,
+  instructionText,
+}: QrSpoolScannerProps) {
   const { t } = useTranslation();
   const [cameraIssue, setCameraIssue] = useState<CameraIssue | null>(null);
   const [decoding, setDecoding] = useState(false);
@@ -207,10 +222,17 @@ export function QrSpoolScanner({ onDecode, busy, error, targetLabel }: QrSpoolSc
     setPhotoError(null);
     setDecoding(true);
     try {
-      const text = await decodeImageBlob(file);
+      const text = includeBarcodes ? await decodeImageBlob(file, true) : await decodeImageBlob(file);
       if (!mountedRef.current) return;
-      if (!text) setPhotoError(t('inventory.qrAssign.noQrInPhoto'));
-      else if (busyRef.current) setWaitingPhoto(text);
+      if (!text) {
+        if (onPhotoFile) {
+          const handled = await onPhotoFile(file);
+          if (!mountedRef.current) return;
+          if (!handled) setPhotoError(t('inventory.qrAssign.noQrInPhoto'));
+        } else {
+          setPhotoError(t('inventory.qrAssign.noQrInPhoto'));
+        }
+      } else if (busyRef.current) setWaitingPhoto(text);
       else handOver(text);
     } catch {
       if (mountedRef.current) setPhotoError(t('inventory.qrAssign.noQrInPhoto'));
@@ -235,9 +257,9 @@ export function QrSpoolScanner({ onDecode, busy, error, targetLabel }: QrSpoolSc
         </p>
       ) : (
         <div className="relative mx-auto w-full max-w-sm">
-          <LiveScanner onFrame={handleLiveFrame} onError={setCameraIssue} paused={isBusy} />
+          <LiveScanner onFrame={handleLiveFrame} onError={setCameraIssue} paused={isBusy} includeBarcodes={includeBarcodes} />
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <div className="w-2/3 aspect-square border-2 border-bambu-green/70 rounded-xl" />
+            <div className={includeBarcodes ? 'w-4/5 h-1/2 border-2 border-bambu-green/70 rounded-xl' : 'w-2/3 aspect-square border-2 border-bambu-green/70 rounded-xl'} />
           </div>
           {isBusy && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg">
@@ -247,7 +269,7 @@ export function QrSpoolScanner({ onDecode, busy, error, targetLabel }: QrSpoolSc
         </div>
       )}
 
-      <p className="text-xs text-bambu-gray text-center">{t('inventory.qrAssign.scanInstruction')}</p>
+      <p className="text-xs text-bambu-gray text-center">{instructionText ?? t('inventory.qrAssign.scanInstruction')}</p>
 
       {/* Fallback: capture a photo with the native camera (better focus). */}
       <input ref={inputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhoto} />

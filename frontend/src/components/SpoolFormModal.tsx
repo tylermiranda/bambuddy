@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { X, Loader2, Save, Beaker, Palette, Zap, Tag, Link2, Unlink } from 'lucide-react';
+import { X, Loader2, Save, Beaker, Palette, Zap, Tag, Link2, Unlink, Barcode } from 'lucide-react';
 import { api, ApiError } from '../api/client';
 import type { InventorySpool, SlicerSetting, SpoolCatalogEntry, LocalPreset, BuiltinFilament, SpoolmanBulkCreateResult, SpoolFilamentPresetInput, SpoolKProfileInput, SpoolmanFilamentEntry, ResolvedProfileDefault } from '../api/client';
+import type { BambuSpoolPrefill } from './BambuFilamentScannerModal';
 import { Button } from './Button';
 import { useToast } from '../contexts/ToastContext';
 import type {
@@ -52,6 +53,10 @@ interface SpoolFormModalProps {
   spoolmanMode?: boolean;
   /** Query key to invalidate after mutations (differs for Spoolman vs local). */
   spoolsQueryKey?: string[];
+  /** Optional prefill from the official Bambu Filament Scanner. */
+  prefill?: BambuSpoolPrefill | null;
+  /** Optional callback to open the official Bambu Filament Scanner from inside the Add Spool modal. */
+  onOpenBambuScanner?: () => void;
 }
 
 export function SpoolFormModal({
@@ -64,6 +69,8 @@ export function SpoolFormModal({
   onSpoolsCreated,
   spoolmanMode = false,
   spoolsQueryKey = ['inventory-spools'],
+  prefill = null,
+  onOpenBambuScanner,
 }: SpoolFormModalProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -502,6 +509,28 @@ export function SpoolFormModal({
             is_purchase_source: isCopying ? false : link.is_purchase_source,
           }))
         );
+      } else if (prefill && mode === 'create') {
+        const validRgba = prefill.rgba && /^[0-9A-Fa-f]{8}$/.test(prefill.rgba) ? prefill.rgba : '808080FF';
+        setFormData({
+          ...defaultFormData,
+          brand: prefill.brand || 'Bambu Lab',
+          material: prefill.material || '',
+          subtype: prefill.subtype || '',
+          color_name: prefill.color_name || '',
+          rgba: validRgba,
+          extra_colors: prefill.extra_colors || '',
+          effect_type: prefill.effect_type || '',
+          label_weight: prefill.label_weight || 1000,
+          core_weight: prefill.core_weight ?? 250,
+          core_weight_catalog_id: prefill.core_weight_catalog_id ?? null,
+          slicer_filament: prefill.slicer_filament || '',
+          note: prefill.note || '',
+          material_number: prefill.material_number || '',
+          location_id: prefill.location_id ?? null,
+        });
+        setPresetInputValue(prefill.slicer_filament_name || prefill.slicer_filament || '');
+        setSelectedProfiles(new Map());
+        setSupplierLinks([]);
       } else {
         setFormData(defaultFormData);
         setPresetInputValue('');
@@ -514,7 +543,7 @@ export function SpoolFormModal({
       // stuck in quick-add layout (no preset field, no PA-profile tab) with no
       // control to switch back.
       setQuickAdd(false);
-      setQuantity(1);
+      setQuantity(prefill && mode === 'create' ? Math.max(1, prefill.quantity || 1) : 1);
       setErrors({});
       setActiveTab('filament');
       setSelectedGroupId('');
@@ -527,8 +556,11 @@ export function SpoolFormModal({
       // A copy of a Spoolman spool with its own tare carries that tare, as it
       // would any other field shown in the form; one that inherits keeps
       // inheriting. Only Spoolman spools report the flag (#2908).
-      setCoreWeightTouched(isCopying && spool?.core_weight_is_inherited === false);
-      setLocationIdTouched(false);
+      setCoreWeightTouched(
+        (isCopying && spool?.core_weight_is_inherited === false) ||
+        Boolean(prefill && mode === 'create')
+      );
+      setLocationIdTouched(Boolean(prefill && mode === 'create' && prefill.location_id != null));
       setSupplierLinksTouched(false);
       setPrinterProfilesTouched(false);
       setPrefilledFromDefault(false);
@@ -540,7 +572,7 @@ export function SpoolFormModal({
       setSaveAsDefault(false);
       setDefaultScope('all');
     }
-  }, [isOpen, spool, mode, isCopying]);
+  }, [isOpen, spool, mode, isCopying, prefill]);
 
   // Load this spool's per-printer-model preset overrides. Fetched rather than
   // read off the spool: they are deliberately not embedded in the spool
@@ -1219,27 +1251,39 @@ export function SpoolFormModal({
             copies under a misleading title — keep this toggle out of that
             mode entirely. */}
         {mode === 'create' && (
-          <div className="flex items-center justify-between px-4 py-2 border-b border-bambu-dark-tertiary flex-shrink-0">
-            <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-              <span className="text-sm text-white">{t('inventory.quickAdd')}</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setQuickAdd(!quickAdd);
-                if (!quickAdd) setActiveTab('filament');
-              }}
-              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                quickAdd ? 'bg-bambu-green' : 'bg-bambu-dark-tertiary'
-              }`}
-            >
-              <span
-                className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
-                  quickAdd ? 'translate-x-4' : 'translate-x-0.5'
+          <div className="flex items-center justify-between gap-3 px-4 py-2 border-b border-bambu-dark-tertiary flex-shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Zap className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                <span className="text-sm text-white">{t('inventory.quickAdd')}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setQuickAdd(!quickAdd);
+                  if (!quickAdd) setActiveTab('filament');
+                }}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                  quickAdd ? 'bg-bambu-green' : 'bg-bambu-dark-tertiary'
                 }`}
-              />
-            </button>
+              >
+                <span
+                  className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
+                    quickAdd ? 'translate-x-4' : 'translate-x-0.5'
+                  }`}
+                />
+              </button>
+            </div>
+            {onOpenBambuScanner && (
+              <button
+                type="button"
+                onClick={onOpenBambuScanner}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-bambu-green/15 border border-bambu-green/40 text-xs font-medium text-bambu-green hover:bg-bambu-green/25 transition-colors"
+              >
+                <Barcode className="w-3.5 h-3.5" />
+                {t('inventory.bambuScan.scanButton', 'Scan Bambu Filament')}
+              </button>
+            )}
           </div>
         )}
 

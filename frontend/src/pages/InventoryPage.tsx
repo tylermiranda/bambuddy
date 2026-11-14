@@ -7,7 +7,7 @@ import {
   Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
   TrendingDown, Layers, Printer, AlertTriangle, X, Clock, LayoutGrid, TableProperties, Columns,
   ArrowUp, ArrowDown, ArrowUpDown, Group, ChevronDown, Check, RefreshCw, TrendingUp, Lock, Copy, Eraser, MapPin,
-  Upload, Download, Store, QrCode,
+  Upload, Download, Store, QrCode, Barcode,
 } from 'lucide-react';
 import { ForecastPanel } from '../components/ForecastPanel';
 import { api, spoolbuddyApi, ApiError } from '../api/client';
@@ -17,6 +17,7 @@ import { FilamentSwatch } from '../components/FilamentSwatch';
 import { describeHASensorReading, iconForHASensor } from '../utils/haSensorDisplay';
 import { buildFilamentBackground } from '../components/filamentSwatchHelpers';
 import {SpoolFormModal, type SpoolFormMode} from '../components/SpoolFormModal';
+import { BambuFilamentScannerModal, type BambuSpoolPrefill } from '../components/BambuFilamentScannerModal';
 import { QrAssignTargetModal } from '../components/QrAssignTargetModal';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { ColumnConfigModal, type ColumnConfig } from '../components/ColumnConfigModal';
@@ -662,7 +663,12 @@ function InventoryPage({ spoolmanMode = false, spoolmanModeReady = true }: { spo
   const { hasPermission, loading: authLoading } = useAuth();
   const canViewForecast = !authLoading && hasPermission('inventory:forecast_read');
   const [searchParams, setSearchParams] = useSearchParams();
-  const [formModal, setFormModal] = useState<{ spool?: InventorySpool | null; mode: SpoolFormMode } | null>(null);
+  const [formModal, setFormModal] = useState<{
+    spool?: InventorySpool | null;
+    mode: SpoolFormMode;
+    prefill?: BambuSpoolPrefill | null;
+  } | null>(null);
+  const [bambuScannerOpen, setBambuScannerOpen] = useState(false);
   const deepLinkHandled = useRef(false);
   // Scan-to-location (#1574): pick a target (AMS slot or storage), then scan a
   // spool's QR with the in-page camera — handled entirely inside the modal.
@@ -1689,6 +1695,10 @@ function InventoryPage({ spoolmanMode = false, spoolmanModeReady = true }: { spo
             <QrCode className="w-4 h-4" />
             {t('inventory.qrAssign.button')}
           </Button>
+          <Button variant="secondary" onClick={() => setBambuScannerOpen(true)}>
+            <Barcode className="w-4 h-4 text-bambu-green" />
+            {t('inventory.bambuScan.toolbarButton', 'Scan Bambu')}
+          </Button>
           <Button onClick={() => setFormModal({ spool: null, mode: 'create' })}>
             <Plus className="w-4 h-4" />
             {t('inventory.addSpool')}
@@ -1701,6 +1711,19 @@ function InventoryPage({ spoolmanMode = false, spoolmanModeReady = true }: { spo
           isOpen={qrTargetModalOpen}
           onClose={() => setQrTargetModalOpen(false)}
           spoolmanMode={spoolmanMode}
+        />
+      )}
+
+      {bambuScannerOpen && (
+        <BambuFilamentScannerModal
+          onClose={() => setBambuScannerOpen(false)}
+          onOpenInForm={(prefill) => {
+            setBambuScannerOpen(false);
+            setFormModal({ spool: null, mode: 'create', prefill });
+          }}
+          locations={storageLocations}
+          spoolmanMode={spoolmanMode}
+          spoolsQueryKey={spoolsQueryKey}
         />
       )}
 
@@ -2604,6 +2627,11 @@ function InventoryPage({ spoolmanMode = false, spoolmanModeReady = true }: { spo
           onClose={() => setFormModal(null)}
           spool={formModal.spool}
           mode={formModal.mode}
+          prefill={formModal.prefill ?? null}
+          onOpenBambuScanner={() => {
+            setFormModal(null);
+            setBambuScannerOpen(true);
+          }}
           currencySymbol={currencySymbol}
           spoolmanMode={spoolmanMode}
           spoolsQueryKey={spoolsQueryKey}
