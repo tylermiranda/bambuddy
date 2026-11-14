@@ -91,11 +91,35 @@ export function decode1dBarcodeFromImageData(data: Uint8ClampedArray, width: num
       const idx = i * 4;
       luminances[i] = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
     }
-    const source = new RGBLuminanceSource(luminances, width, height);
-    const bitmap = new BinaryBitmap(new HybridBinarizer(source));
     const { reader, hints } = getZxingReader();
-    const result = reader.decode(bitmap, hints);
-    return result.getText();
+
+    // 1. Try standard horizontal orientation
+    try {
+      const source = new RGBLuminanceSource(luminances, width, height);
+      const bitmap = new BinaryBitmap(new HybridBinarizer(source));
+      const result = reader.decode(bitmap, hints);
+      if (result) return result.getText();
+    } catch {
+      /* Not detected horizontally; try rotated */
+    }
+
+    // 2. Try 90-degree rotated orientation (for vertical box labels like Bambu filaments)
+    try {
+      const rotLuminances = new Uint8ClampedArray(len);
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          rotLuminances[x * height + (height - 1 - y)] = luminances[y * width + x];
+        }
+      }
+      const rotSource = new RGBLuminanceSource(rotLuminances, height, width);
+      const rotBitmap = new BinaryBitmap(new HybridBinarizer(rotSource));
+      const rotResult = reader.decode(rotBitmap, hints);
+      if (rotResult) return rotResult.getText();
+    } catch {
+      /* Not detected rotated */
+    }
+
+    return undefined;
   } catch {
     return undefined;
   }
