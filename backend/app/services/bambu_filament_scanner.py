@@ -52,10 +52,21 @@ def load_bambu_catalog() -> dict[str, Any]:
     by_variant: dict[str, dict[str, Any]] = {}
     by_filament_id: dict[str, list[dict[str, Any]]] = {}
 
+    barcodes = dict(data.get("barcodes", {}))
+
     for entry in filaments:
         code = str(entry.get("filament_code", "")).strip()
         if code:
             by_code[code] = entry
+            # Also index any retail_barcodes listed directly on the filament item
+            for r_bc in entry.get("retail_barcodes") or []:
+                r_bc_str = str(r_bc).strip()
+                if r_bc_str and r_bc_str not in barcodes:
+                    barcodes[r_bc_str] = {
+                        "filament_code": code,
+                        "is_refill": False,
+                        "label_weight": 1000,
+                    }
         fid = str(entry.get("filament_id", "")).strip().upper()
         if fid:
             by_filament_id.setdefault(fid, []).append(entry)
@@ -75,7 +86,7 @@ def load_bambu_catalog() -> dict[str, Any]:
         "by_code": by_code,
         "by_variant": by_variant,
         "by_filament_id": by_filament_id,
-        "barcodes": data.get("barcodes", {}),
+        "barcodes": barcodes,
     }
 
 
