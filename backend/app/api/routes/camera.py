@@ -1632,27 +1632,7 @@ async def _snapshot_response(printer_id: int, printer: Printer, source: str | No
     if source == "external" and not (printer.external_camera_enabled and printer.external_camera_url):
         raise HTTPException(404, "External camera not configured")
 
-    # A viewer is watching: both camera kinds allow one reader (Bambu firmware
-    # one connection, a USB camera one V4L2 handle), so a capture of our own
-    # would fail or knock the viewer off. Answer with the live frame, and while
-    # the view is still starting, ask the caller to come back (#1348) — Home
-    # Assistant and the camera wall poll this. Not for an external camera with
-    # its own snapshot URL (#1177): that endpoint has no reader to compete with
-    # and gives the full-quality frame the live view does not.
-    has_snapshot_url = bool(
-        use_external and printer.external_camera_snapshot_url
-    )
-    defer, live_frame = (False, None) if has_snapshot_url else live_frame_for_capture(printer_id)
-    if defer:
-        if live_frame:
-            return Response(content=live_frame, media_type="image/jpeg", headers=headers)
-        raise HTTPException(
-            status_code=503,
-            detail="The camera is in use by the live view, which is still starting. Try again in a moment.",
-            headers={"Retry-After": "2"},
-        )
-
-    # Check for external camera first
+    # Capture from external camera when requested or configured as default
     if use_external:
         from backend.app.services.external_camera import capture_frame
 
@@ -1670,10 +1650,20 @@ async def _snapshot_response(printer_id: int, printer: Printer, source: str | No
         return Response(
             content=frame_data,
             media_type="image/jpeg",
-            headers={
-                "Cache-Control": "no-cache, no-store, must-revalidate",
-                "Content-Disposition": f'inline; filename="snapshot_{printer_id}.jpg"',
-            },
+            headers=headers,
+        )
+
+    # Chamber camera snapshot:
+    # A viewer is watching: Bambu firmware allows one reader, so a capture
+    # of our own would fail or knock the viewer off. Answer with the live frame.
+    defer, live_frame = live_frame_for_capture(printer_id)
+    if defer:
+        if live_frame:
+            return Response(content=live_frame, media_type="image/jpeg", headers=headers)
+        raise HTTPException(
+            status_code=503,
+            detail="The camera is in use by the live view, which is still starting. Try again in a moment.",
+            headers={"Retry-After": "2"},
         )
 
     # Create temporary file for the snapshot (0600 so only the app user can read it)
