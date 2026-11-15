@@ -1,0 +1,5 @@
+<<<<<<<< HEAD:static/assets/libraryFiles-DeT6I_Lq.js
+import{i as e,n as t}from"./slicer-Cv1rnIVE.js";function n(e){let t=(e.file_type||``).toLowerCase();if(t===`gcode`||t===`gcode.3mf`)return!0;let n=(e.filename||``).toLowerCase();return n.endsWith(`.gcode`)||n.endsWith(`.gcode.3mf`)}function r(e){let t=e.toLowerCase();return t.endsWith(`.gcode`)||t.includes(`.gcode.`)||t.endsWith(`.3mf`)}function i(r,i,a){return n(r)?!1:i?t(r.filename):e(r.filename,a)}export{n,r,i as t};
+========
+import{i as e,n as t}from"./slicer-BKhqErrJ.js";function n(e){let t=(e.file_type||``).toLowerCase();if(t===`gcode`||t===`gcode.3mf`)return!0;let n=(e.filename||``).toLowerCase();return n.endsWith(`.gcode`)||n.endsWith(`.gcode.3mf`)}function r(e){let t=e.toLowerCase();return t.endsWith(`.gcode`)||t.includes(`.gcode.`)||t.endsWith(`.3mf`)}function i(r,i,a){return n(r)?!1:i?t(r.filename):e(r.filename,a)}export{n,r,i as t};
+>>>>>>>> 8e5a34a9e (feat(camera): add dual-camera support with draggable floating overlays and source toggle):static/assets/libraryFiles-B6cfsyQo.js

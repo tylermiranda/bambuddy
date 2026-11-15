@@ -160,25 +160,67 @@ export function CameraLauncher({
               <p className="text-sm text-bambu-gray text-center py-4 px-2">{t('cameraLauncher.noPrinters')}</p>
             ) : (
               printers.map(printer => {
-                const isOpen = openIds.has(printer.id);
+                const hasExt = Boolean(printer.external_camera_enabled && printer.external_camera_url);
+                if (!hasExt) {
+                  const isOpen = openCameras.some(c => c.id === printer.id);
+                  return (
+                    <button
+                      key={printer.id}
+                      aria-pressed={isOpen}
+                      onClick={() => {
+                        if (isOpen) {
+                          closeEmbeddedCamera(printer.id);
+                        } else {
+                          openEmbeddedCamera(printer.id, printer.name, 'app');
+                          setOpen(false);
+                        }
+                      }}
+                      className="w-full flex items-center justify-between gap-2 py-2 px-3 text-left text-sm text-white hover:bg-bambu-dark-tertiary rounded-lg transition-colors"
+                      title={isOpen ? t('cameraLauncher.close') : t('cameraLauncher.open')}
+                    >
+                      <span className="truncate">{printer.name}</span>
+                      {isOpen && <Check className="w-4 h-4 text-bambu-green flex-shrink-0" />}
+                    </button>
+                  );
+                }
+
+                const isChamberOpen = openCameras.some(c => c.id === printer.id && (c.source === 'chamber' || !c.source));
+                const isExternalOpen = openCameras.some(c => c.id === printer.id && c.source === 'external');
                 return (
-                  <button
-                    key={printer.id}
-                    aria-pressed={isOpen}
-                    onClick={() => {
-                      if (isOpen) {
-                        closeEmbeddedCamera(printer.id);
-                      } else {
-                        openEmbeddedCamera(printer.id, printer.name, 'app');
-                        setOpen(false);
-                      }
-                    }}
-                    className="w-full flex items-center justify-between gap-2 py-2 px-3 text-left text-sm text-white hover:bg-bambu-dark-tertiary rounded-lg transition-colors"
-                    title={isOpen ? t('cameraLauncher.close') : t('cameraLauncher.open')}
-                  >
-                    <span className="truncate">{printer.name}</span>
-                    {isOpen && <Check className="w-4 h-4 text-bambu-green flex-shrink-0" />}
-                  </button>
+                  <div key={printer.id} className="space-y-0.5 border-b border-bambu-dark-tertiary/40 pb-1 mb-1 last:border-b-0 last:pb-0 last:mb-0">
+                    <button
+                      type="button"
+                      aria-pressed={isChamberOpen}
+                      onClick={() => {
+                        if (isChamberOpen) {
+                          closeEmbeddedCamera(printer.id, 'chamber');
+                        } else {
+                          openEmbeddedCamera(printer.id, printer.name, 'app', 'chamber');
+                          setOpen(false);
+                        }
+                      }}
+                      className="w-full flex items-center justify-between gap-2 py-1.5 px-3 text-left text-sm text-white hover:bg-bambu-dark-tertiary rounded-lg transition-colors"
+                    >
+                      <span className="truncate">{printer.name} (Chamber)</span>
+                      {isChamberOpen && <Check className="w-4 h-4 text-bambu-green flex-shrink-0" />}
+                    </button>
+                    <button
+                      type="button"
+                      aria-pressed={isExternalOpen}
+                      onClick={() => {
+                        if (isExternalOpen) {
+                          closeEmbeddedCamera(printer.id, 'external');
+                        } else {
+                          openEmbeddedCamera(printer.id, printer.name, 'app', 'external');
+                          setOpen(false);
+                        }
+                      }}
+                      className="w-full flex items-center justify-between gap-2 py-1.5 px-3 text-left text-sm text-white hover:bg-bambu-dark-tertiary rounded-lg transition-colors"
+                    >
+                      <span className="truncate">{printer.name} (External)</span>
+                      {isExternalOpen && <Check className="w-4 h-4 text-bambu-green flex-shrink-0" />}
+                    </button>
+                  </div>
                 );
               })
             )}

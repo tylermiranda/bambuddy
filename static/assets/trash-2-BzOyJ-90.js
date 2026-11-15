@@ -1,0 +1,5 @@
+<<<<<<<< HEAD:static/assets/trash-2-D7qwOwwV.js
+import{C as e}from"./client-MyvT0tak.js";var t=e(`trash-2`,[[`path`,{d:`M10 11v6`,key:`nco0om`}],[`path`,{d:`M14 11v6`,key:`outv1u`}],[`path`,{d:`M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6`,key:`miytrc`}],[`path`,{d:`M3 6h18`,key:`d0wm0j`}],[`path`,{d:`M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2`,key:`e791ji`}]]);export{t};
+========
+import{C as e}from"./client-BcKCPdvL.js";var t=e(`trash-2`,[[`path`,{d:`M10 11v6`,key:`nco0om`}],[`path`,{d:`M14 11v6`,key:`outv1u`}],[`path`,{d:`M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6`,key:`miytrc`}],[`path`,{d:`M3 6h18`,key:`d0wm0j`}],[`path`,{d:`M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2`,key:`e791ji`}]]);export{t};
+>>>>>>>> 8e5a34a9e (feat(camera): add dual-camera support with draggable floating overlays and source toggle):static/assets/trash-2-BzOyJ-90.js

@@ -42,14 +42,19 @@ export interface OpenCamera {
   id: number;
   name: string;
   scope: CameraScope;
+  source?: 'chamber' | 'external';
+}
+
+function cameraKey(id: number, source?: 'chamber' | 'external'): string {
+  return source ? `${id}:${source}` : `${id}`;
 }
 
 interface EmbeddedCameraContextType {
   openCameras: OpenCamera[];
   /** Opening one already open for every page keeps it there; opening a
    *  Printers-page one for every page moves it to every page. */
-  openEmbeddedCamera: (id: number, name: string, scope: CameraScope) => void;
-  closeEmbeddedCamera: (id: number) => void;
+  openEmbeddedCamera: (id: number, name: string, scope: CameraScope, source?: 'chamber' | 'external') => void;
+  closeEmbeddedCamera: (id: number, source?: 'chamber' | 'external') => void;
 }
 
 const EmbeddedCameraContext = createContext<EmbeddedCameraContextType | undefined>(undefined);
@@ -62,7 +67,12 @@ function readStored(): OpenCamera[] {
       if (Array.isArray(cameras)) {
         return cameras
           .filter(c => c && Number.isInteger(c.id) && c.id > 0)
-          .map(c => ({ id: c.id, name: String(c.name ?? ''), scope: c.scope === 'printers' ? 'printers' : 'app' }));
+          .map(c => ({
+            id: c.id,
+            name: String(c.name ?? ''),
+            scope: c.scope === 'printers' ? 'printers' : 'app',
+            source: c.source === 'external' ? 'external' : c.source === 'chamber' ? 'chamber' : undefined,
+          }));
       }
     }
   } catch {
@@ -95,33 +105,49 @@ export function EmbeddedCameraProvider({ children }: { children: ReactNode }) {
   // takes printers:read; without it the Printers page, where a camera opened
   // from before, is out of reach too.
   const canView = hasPermission('camera:view') && hasPermission('printers:read');
-  const [cameras, setCameras] = useState<Map<number, OpenCamera>>(
-    () => new Map(readStored().map(c => [c.id, c])),
+  const [cameras, setCameras] = useState<Map<string, OpenCamera>>(
+    () => new Map(readStored().map(c => [cameraKey(c.id, c.source), c])),
   );
 
-  const openEmbeddedCamera = useCallback((id: number, name: string, scope: CameraScope) => {
+  const openEmbeddedCamera = useCallback((id: number, name: string, scope: CameraScope, source?: 'chamber' | 'external') => {
     // The wider of the two scopes wins, so a card can't pull a camera the
     // sidebar put on every page back onto one.
+    const key = cameraKey(id, source);
     const merge = (current: OpenCamera | undefined): OpenCamera =>
-      current ? { ...current, scope: current.scope === 'app' || scope === 'app' ? 'app' : 'printers' } : { id, name, scope };
+      current
+        ? { ...current, scope: current.scope === 'app' || scope === 'app' ? 'app' : 'printers', source: source || current.source }
+        : { id, name, scope, source };
     setCameras(prev => {
-      const next = merge(prev.get(id));
-      const current = prev.get(id);
-      return current && current.scope === next.scope ? prev : new Map(prev).set(id, next);
+      const next = merge(prev.get(key));
+      const current = prev.get(key);
+      return current && current.scope === next.scope && current.source === next.source ? prev : new Map(prev).set(key, next);
     });
     updateStored(list =>
-      list.some(c => c.id === id) ? list.map(c => (c.id === id ? merge(c) : c)) : [...list, { id, name, scope }],
+      list.some(c => c.id === id && c.source === source)
+        ? list.map(c => (c.id === id && c.source === source ? merge(c) : c))
+        : [...list, { id, name, scope, source }],
     );
   }, []);
 
-  const closeEmbeddedCamera = useCallback((id: number) => {
+  const closeEmbeddedCamera = useCallback((id: number, source?: 'chamber' | 'external') => {
     setCameras(prev => {
-      if (!prev.has(id)) return prev;
       const next = new Map(prev);
-      next.delete(id);
+      if (source !== undefined) {
+        next.delete(cameraKey(id, source));
+        next.delete(cameraKey(id));
+      } else {
+        for (const [k, v] of prev.entries()) {
+          if (v.id === id) next.delete(k);
+        }
+      }
       return next;
     });
-    updateStored(list => list.filter(c => c.id !== id));
+    updateStored(list => {
+      if (source !== undefined) {
+        return list.filter(c => !(c.id === id && (c.source === source || (!c.source && source === 'chamber'))));
+      }
+      return list.filter(c => c.id !== id);
+    });
   }, []);
 
   // The list is stored per browser, not per user: a printer that was deleted,
@@ -145,8 +171,8 @@ export function EmbeddedCameraProvider({ children }: { children: ReactNode }) {
     if (!listFresh || !printers) return;
     const visible = new Set(printers.map(p => p.id));
     // Also for an overlay added after the list came in.
-    const dropped = Array.from(cameras.keys()).filter(id => !visible.has(id));
-    dropped.forEach(closeEmbeddedCamera);
+    const dropped = Array.from(cameras.values()).filter(c => !visible.has(c.id));
+    dropped.forEach(c => closeEmbeddedCamera(c.id, c.source));
   }, [listFresh, printers, cameras, closeEmbeddedCamera]);
 
   useEffect(() => {
@@ -180,11 +206,13 @@ export function EmbeddedCameraProvider({ children }: { children: ReactNode }) {
         <Suspense fallback={null}>
           {shownCameras.map((camera, index) => (
             <EmbeddedCameraViewer
-              key={camera.id}
+              key={`${camera.id}-${camera.source || 'default'}`}
               printerId={camera.id}
               printerName={camera.name}
+              source={camera.source}
               viewerIndex={index}
-              onClose={() => closeEmbeddedCamera(camera.id)}
+              onClose={() => closeEmbeddedCamera(camera.id, camera.source)}
+              onSpawnSecondCamera={(targetSource) => openEmbeddedCamera(camera.id, camera.name, 'app', targetSource)}
             />
           ))}
         </Suspense>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { X, RefreshCw, AlertTriangle, Maximize2, Minimize2, GripVertical, WifiOff, ZoomIn, ZoomOut, Fullscreen, Minimize, Stethoscope, ExternalLink } from 'lucide-react';
+import { X, RefreshCw, AlertTriangle, Maximize2, Minimize2, GripVertical, WifiOff, ZoomIn, ZoomOut, Fullscreen, Minimize, Stethoscope, ExternalLink, Layers } from 'lucide-react';
 import { api, getAuthToken, withStreamToken } from '../api/client';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -17,8 +17,10 @@ import { useIsSidebarCompact } from '../hooks/useIsSidebarCompact';
 export interface EmbeddedCameraViewerProps {
   printerId: number;
   printerName: string;
+  source?: 'chamber' | 'external';
   viewerIndex?: number;  // Used to offset multiple viewers
   onClose: () => void;
+  onSpawnSecondCamera?: (targetSource: 'chamber' | 'external') => void;
 }
 
 const STORAGE_KEY_PREFIX = 'embeddedCameraState_';
@@ -40,54 +42,67 @@ const COMPACT_HEADER_HEIGHT = 56;
 
 // Below that header and within the window on a phone; worked out when a
 // viewer opens, not at load.
-function defaultState(): CameraState {
+function defaultState(src?: 'chamber' | 'external', index = 0): CameraState {
   const width = Math.min(400, Math.max(200, window.innerWidth - 16));
+  const isExt = src === 'external';
+  const x = Math.max(0, window.innerWidth - width - 20 - (isExt ? Math.min(410, window.innerWidth - width - 40) : 0));
+  const y = isExt && window.innerWidth < 850 ? 380 : 64 + index * 30;
   return {
-    x: Math.max(0, window.innerWidth - width - 20),
-    y: 64,
+    x,
+    y,
     width,
     height: 300,
   };
 }
 
-export function EmbeddedCameraViewer({ printerId, printerName, viewerIndex = 0, onClose }: EmbeddedCameraViewerProps) {
+export function EmbeddedCameraViewer({ printerId, printerName, source, viewerIndex = 0, onClose, onSpawnSecondCamera }: EmbeddedCameraViewerProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const { hasPermission } = useAuth();
 
-  // Printer-specific storage key
-  const storageKey = `${STORAGE_KEY_PREFIX}${printerId}`;
+  const [currentSource, setCurrentSource] = useState<'chamber' | 'external' | undefined>(source);
+  useEffect(() => {
+    if (source) setCurrentSource(source);
+  }, [source]);
+
+
+  // Fetch printer info
+  const { data: printer } = useQuery({
+    queryKey: ['printer', printerId],
+    queryFn: () => api.getPrinter(printerId),
+    enabled: printerId > 0,
+  });
+
+  const hasExternal = Boolean(printer?.external_camera_enabled && printer?.external_camera_url);
+  const effectiveSource: 'chamber' | 'external' = currentSource || source || (hasExternal ? 'external' : 'chamber');
+
+  // Printer- and source-specific storage key
+  const storageKey = `${STORAGE_KEY_PREFIX}${printerId}_${effectiveSource}`;
   const minY = useIsSidebarCompact() ? COMPACT_HEADER_HEIGHT : 0;
 
   // Load saved state or use defaults (offset for new viewers without saved state)
-  const loadState = (): CameraState => {
+  const loadState = (src: 'chamber' | 'external'): CameraState => {
     try {
-      const saved = localStorage.getItem(storageKey);
+      const key = `${STORAGE_KEY_PREFIX}${printerId}_${src}`;
+      const saved = localStorage.getItem(key) || (src === 'chamber' ? localStorage.getItem(`${STORAGE_KEY_PREFIX}${printerId}`) : null);
       if (saved) {
-        const state = JSON.parse(saved);
+        const parsed = JSON.parse(saved);
         // Validate state is on screen
         return {
-          x: Math.min(Math.max(0, state.x), window.innerWidth - 100),
-          y: Math.min(Math.max(0, state.y), window.innerHeight - 100),
-          width: Math.max(200, Math.min(state.width, window.innerWidth - 20)),
-          height: Math.max(150, Math.min(state.height, window.innerHeight - 20)),
+          x: Math.min(Math.max(0, parsed.x), window.innerWidth - 100),
+          y: Math.min(Math.max(0, parsed.y), window.innerHeight - 100),
+          width: Math.max(200, Math.min(parsed.width, window.innerWidth - 20)),
+          height: Math.max(150, Math.min(parsed.height, window.innerHeight - 20)),
         };
       }
     } catch {
       // Ignore parse errors
     }
-    // Offset new viewers so they don't stack exactly on top of each other
-    const offset = viewerIndex * 30;
-    const initial = defaultState();
-    return {
-      ...initial,
-      x: Math.max(0, initial.x - offset),
-      y: Math.max(0, initial.y + offset),
-    };
+    return defaultState(src, viewerIndex);
   };
 
-  const [state, setState] = useState<CameraState>(loadState);
+  const [state, setState] = useState<CameraState>(() => loadState(source || 'chamber'));
   // Below the compact header: a position saved before it held the launcher,
   // or a window narrowed into the compact layout. Before paint, so a viewer
   // never shows over the header first.
@@ -130,12 +145,6 @@ export function EmbeddedCameraViewer({ printerId, printerName, viewerIndex = 0, 
   // ticket → wait for response → check setting". See #1395 follow-up.
   const [showDiagnoseModal, setShowDiagnoseModal] = useState(false);
 
-  // Fetch printer info
-  const { data: printer } = useQuery({
-    queryKey: ['printer', printerId],
-    queryFn: () => api.getPrinter(printerId),
-    enabled: printerId > 0,
-  });
 
   // A camera turned sideways is laid out with the video area's sides swapped,
   // or it is cut off in a wide window and boxed in a tall one (#3362).
@@ -494,6 +503,31 @@ export function EmbeddedCameraViewer({ printerId, printerName, viewerIndex = 0, 
     setTimeout(() => setImageKey(Date.now()), 100);
   };
 
+  const handleToggleSource = (newSource: 'chamber' | 'external') => {
+    if (newSource === effectiveSource) return;
+    setCurrentSource(newSource);
+    setImageKey(Date.now());
+    setStreamLoading(true);
+    setStreamError(false);
+    setReconnectAttempts(0);
+    setIsReconnecting(false);
+    if (imgRef.current) imgRef.current.src = '';
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY_PREFIX}${printerId}_${newSource}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setState({
+          x: Math.min(Math.max(0, parsed.x), window.innerWidth - 100),
+          y: Math.min(Math.max(0, parsed.y), window.innerHeight - 100),
+          width: Math.max(200, Math.min(parsed.width, window.innerWidth - 20)),
+          height: Math.max(150, Math.min(parsed.height, window.innerHeight - 20)),
+        });
+      }
+    } catch {
+      // Ignore
+    }
+  };
+
   // Drag handlers
   const handleMouseDown = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('.no-drag')) return;
@@ -584,7 +618,7 @@ export function EmbeddedCameraViewer({ printerId, printerName, viewerIndex = 0, 
     }
   }, [isDragging, isResizing, dragOffset, minY]);
 
-  const streamUrl = withStreamToken(`/api/v1/printers/${printerId}/camera/stream?fps=15&t=${imageKey}&viewer=${viewerId}`);
+  const streamUrl = withStreamToken(`/api/v1/printers/${printerId}/camera/stream?fps=15&source=${effectiveSource}&t=${imageKey}&viewer=${viewerId}`);
   // The img gets its src from here, at commit, never from a prop (#3431).
   const attachImg = useStreamImgRef(imgRef, streamUrl);
 
@@ -606,11 +640,47 @@ export function EmbeddedCameraViewer({ printerId, printerName, viewerIndex = 0, 
         onMouseDown={handleMouseDown}
         onTouchStart={handleDragTouchStart}
       >
-        <div className="flex items-center gap-2 text-sm text-white truncate">
+        <div className="flex items-center gap-2 text-sm text-white truncate mr-2">
           <GripVertical className="w-4 h-4 text-bambu-gray flex-shrink-0" />
           <span className="truncate">{printer?.name || printerName}</span>
+          {hasExternal && (
+            <div className="no-drag inline-flex items-center bg-black/40 rounded p-0.5 border border-bambu-dark-tertiary text-xs flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => handleToggleSource('chamber')}
+                className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                  effectiveSource === 'chamber'
+                    ? 'bg-bambu-green text-white shadow-sm'
+                    : 'text-bambu-gray hover:text-white'
+                }`}
+              >
+                Chamber
+              </button>
+              <button
+                type="button"
+                onClick={() => handleToggleSource('external')}
+                className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                  effectiveSource === 'external'
+                    ? 'bg-bambu-green text-white shadow-sm'
+                    : 'text-bambu-gray hover:text-white'
+                }`}
+              >
+                External
+              </button>
+            </div>
+          )}
         </div>
-        <div className="flex items-center gap-1 no-drag">
+        <div className="flex items-center gap-1 no-drag flex-shrink-0">
+          {hasExternal && onSpawnSecondCamera && (
+            <button
+              onClick={() => onSpawnSecondCamera(effectiveSource === 'chamber' ? 'external' : 'chamber')}
+              className="p-1 hover:bg-bambu-dark-tertiary rounded text-bambu-gray hover:text-white"
+              title={effectiveSource === 'chamber' ? 'Pop out External camera side-by-side' : 'Pop out Chamber camera side-by-side'}
+              aria-label="Pop out second camera side-by-side"
+            >
+              <Layers className="w-3.5 h-3.5" />
+            </button>
+          )}
           <button
             onClick={() => chamberLightMutation.mutate(!status?.chamber_light)}
             disabled={!status?.connected || chamberLightMutation.isPending || !hasPermission('printers:control')}

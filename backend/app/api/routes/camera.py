@@ -1222,6 +1222,7 @@ async def camera_stream(
     printer_id: int,
     request: Request,
     fps: int = 10,
+    source: str | None = None,
     opener: StreamOpener = RequireCameraStreamTokenIfAuthEnabled,
     viewer: ViewerId = None,
 ):
@@ -1232,7 +1233,8 @@ async def camera_stream(
 
     Requires a stream token query param (?token=xxx) when auth is enabled.
 
-    Uses external camera if configured, otherwise uses built-in camera:
+    Uses external camera if configured (or requested via source=external),
+    otherwise uses built-in camera (or if requested via source=chamber):
     - External: MJPEG, RTSP, or HTTP snapshot
     - A1/P1: Chamber image protocol (port 6000)
     - X1/H2/P2: RTSP via ffmpeg (port 322)
@@ -1240,6 +1242,7 @@ async def camera_stream(
     Args:
         printer_id: Printer ID
         fps: Target frames per second (default: 10, max: 30)
+        source: Optional camera source ("chamber" or "external")
     """
     # Fetch the printer in a short-lived session so the pooled DB connection is
     # released BEFORE we start streaming. A live MJPEG stream runs for as long
@@ -1258,8 +1261,15 @@ async def camera_stream(
     async with database.async_session() as db:
         printer = await get_printer_or_404(printer_id, db)
 
-    # Check for external camera first
-    if printer.external_camera_enabled and printer.external_camera_url:
+    # Check for external camera first (honoring source query param if provided)
+    use_external = (
+        (source == "external") or
+        (source != "chamber" and printer.external_camera_enabled and bool(printer.external_camera_url))
+    )
+    if source == "external" and not (printer.external_camera_enabled and printer.external_camera_url):
+        raise HTTPException(404, "External camera not configured")
+
+    if use_external:
         # NB: no `import time` / `import uuid` here, and don't reintroduce them.
         # A local import anywhere in this function makes the name function-local
         # for the WHOLE function, so the RTSP/chamber path below — which never
@@ -1579,6 +1589,7 @@ async def _stop_printer_streams(printer_id: int) -> int:
 @router.get("/{printer_id}/camera/snapshot")
 async def camera_snapshot(
     printer_id: int,
+    source: str | None = None,
     _: None = RequireCameraStreamTokenIfAuthEnabled,
 ):
     """Capture a single frame from the printer camera.
@@ -1586,6 +1597,7 @@ async def camera_snapshot(
     Returns a JPEG image.
 
     Requires a stream token query param (?token=xxx) when auth is enabled.
+    Optionally accepts ?source=chamber or ?source=external to target a specific camera.
     """
     # Fetch the printer in a short-lived session and release the pooled DB
     # connection BEFORE the camera capture below (up to 15s, longer under a
@@ -1600,10 +1612,10 @@ async def camera_snapshot(
     # Chamber light for the picture (#1655). Home Assistant and other
     # automations take their pictures here.
     async with camera_light(printer):
-        return await _snapshot_response(printer_id, printer)
+        return await _snapshot_response(printer_id, printer, source=source)
 
 
-async def _snapshot_response(printer_id: int, printer: Printer) -> Response:
+async def _snapshot_response(printer_id: int, printer: Printer, source: str | None = None) -> Response:
     """The capture behind ``camera_snapshot``."""
     import tempfile
     from pathlib import Path
@@ -1613,6 +1625,13 @@ async def _snapshot_response(printer_id: int, printer: Printer) -> Response:
         "Content-Disposition": f'inline; filename="snapshot_{printer_id}.jpg"',
     }
 
+    use_external = (
+        (source == "external") or
+        (source != "chamber" and printer.external_camera_enabled and bool(printer.external_camera_url))
+    )
+    if source == "external" and not (printer.external_camera_enabled and printer.external_camera_url):
+        raise HTTPException(404, "External camera not configured")
+
     # A viewer is watching: both camera kinds allow one reader (Bambu firmware
     # one connection, a USB camera one V4L2 handle), so a capture of our own
     # would fail or knock the viewer off. Answer with the live frame, and while
@@ -1621,7 +1640,7 @@ async def _snapshot_response(printer_id: int, printer: Printer) -> Response:
     # its own snapshot URL (#1177): that endpoint has no reader to compete with
     # and gives the full-quality frame the live view does not.
     has_snapshot_url = bool(
-        printer.external_camera_enabled and printer.external_camera_url and printer.external_camera_snapshot_url
+        use_external and printer.external_camera_snapshot_url
     )
     defer, live_frame = (False, None) if has_snapshot_url else live_frame_for_capture(printer_id)
     if defer:
@@ -1634,7 +1653,7 @@ async def _snapshot_response(printer_id: int, printer: Printer) -> Response:
         )
 
     # Check for external camera first
-    if printer.external_camera_enabled and printer.external_camera_url:
+    if use_external:
         from backend.app.services.external_camera import capture_frame
 
         frame_data = await capture_frame(

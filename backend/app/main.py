@@ -3999,15 +3999,16 @@ async def _capture_snapshot_frame(printer_id: int, printer, logger) -> bytes | N
         if capture_enabled is not None and capture_enabled.lower() != "true":
             return None
 
-        # Try external camera first
-        if printer.external_camera_enabled and printer.external_camera_url:
+        # Check notification camera preference (defaults to chamber camera)
+        async with async_session() as db:
+            notify_source = await get_setting(db, "notification_camera_source")
+
+        # If explicitly set to "external", try external camera first
+        if notify_source == "external" and printer.external_camera_enabled and printer.external_camera_url:
             logger.info("[SNAPSHOT] Capturing from external camera for printer %s", printer_id)
             from backend.app.api.routes.camera import live_frame_for_capture
             from backend.app.services.external_camera import capture_frame
 
-            # An external camera allows one reader, so capturing while a viewer
-            # is attached fails (#2707). A None here falls through to the paths
-            # below exactly as a failed capture did.
             defer, buffered = live_frame_for_capture(printer_id)
             if defer:
                 frame_data = buffered
@@ -4021,7 +4022,7 @@ async def _capture_snapshot_frame(printer_id: int, printer, logger) -> bytes | N
                 logger.info("[SNAPSHOT] External camera frame: %s bytes", len(frame_data))
                 return _apply_camera_rotation(frame_data, printer, logger)
 
-        # Try buffered frame from active stream
+        # Default: Try built-in chamber camera first (buffered frame or fresh capture)
         from backend.app.api.routes.camera import _active_chamber_streams, _active_streams, get_buffered_frame
 
         active_for_printer = [k for k in _active_streams if k.startswith(f"{printer_id}-")]
@@ -4033,16 +4034,36 @@ async def _capture_snapshot_frame(printer_id: int, printer, logger) -> bytes | N
             if len(buffered_frame) <= 2_500_000:
                 return _apply_camera_rotation(buffered_frame, printer, logger)
 
-        # Fresh capture from printer camera
-        logger.info("[SNAPSHOT] Capturing fresh frame for printer %s", printer_id)
-        from backend.app.services.camera import capture_camera_frame_bytes
+        # Fresh capture from built-in printer camera
+        if printer.ip_address and printer.access_code:
+            logger.info("[SNAPSHOT] Capturing fresh frame from printer chamber for %s", printer_id)
+            from backend.app.services.camera import capture_camera_frame_bytes
 
-        frame_data = await capture_camera_frame_bytes(
-            printer.ip_address, printer.access_code, printer.model, timeout=15
-        )
-        if frame_data and len(frame_data) <= 2_500_000:
-            logger.info("[SNAPSHOT] Fresh camera frame: %s bytes", len(frame_data))
-            return _apply_camera_rotation(frame_data, printer, logger)
+            frame_data = await capture_camera_frame_bytes(
+                printer.ip_address, printer.access_code, printer.model, timeout=15
+            )
+            if frame_data and len(frame_data) <= 2_500_000:
+                logger.info("[SNAPSHOT] Fresh chamber frame: %s bytes", len(frame_data))
+                return _apply_camera_rotation(frame_data, printer, logger)
+
+        # Fallback to external camera if chamber capture failed or not configured
+        if printer.external_camera_enabled and printer.external_camera_url:
+            logger.info("[SNAPSHOT] Falling back to external camera for printer %s", printer_id)
+            from backend.app.api.routes.camera import live_frame_for_capture
+            from backend.app.services.external_camera import capture_frame
+
+            defer, buffered = live_frame_for_capture(printer_id)
+            if defer:
+                frame_data = buffered
+            else:
+                frame_data = await capture_frame(
+                    printer.external_camera_url,
+                    printer.external_camera_type or "mjpeg",
+                    snapshot_url=printer.external_camera_snapshot_url,
+                )
+            if frame_data and len(frame_data) <= 2_500_000:
+                logger.info("[SNAPSHOT] External camera fallback frame: %s bytes", len(frame_data))
+                return _apply_camera_rotation(frame_data, printer, logger)
 
     except Exception as e:
         logger.warning("[SNAPSHOT] Failed to capture snapshot for printer %s: %s", printer_id, e)
