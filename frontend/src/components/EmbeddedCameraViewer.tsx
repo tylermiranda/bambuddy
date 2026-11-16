@@ -75,7 +75,9 @@ export function EmbeddedCameraViewer({ printerId, printerName, source, viewerInd
   });
 
   const hasExternal = Boolean(printer?.external_camera_enabled && printer?.external_camera_url);
-  const effectiveSource: 'chamber' | 'external' = currentSource || source || (hasExternal ? 'external' : 'chamber');
+  const hasBuiltin = Boolean(printer?.ip_address && printer?.access_code);
+  const effectiveSource: 'chamber' | 'external' =
+    currentSource || source || (hasBuiltin || !hasExternal ? 'chamber' : 'external');
 
   // Printer- and source-specific storage key
   const storageKey = `${STORAGE_KEY_PREFIX}${printerId}_${effectiveSource}`;

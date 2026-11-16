@@ -63,6 +63,7 @@ function CameraView({ onPoppedIn }: { onPoppedIn: () => void }) {
   const streamTokenValue = streamTokenData?.token ?? getStreamToken();
 
   const [streamMode, setStreamMode] = useState<'stream' | 'snapshot'>('stream');
+  const [cameraSource, setCameraSource] = useState<'chamber' | 'external'>('chamber');
   const [showSkipObjectsModal, setShowSkipObjectsModal] = useState(false);
   const [showDiagnoseModal, setShowDiagnoseModal] = useState(false);
   const [streamError, setStreamError] = useState(false);
@@ -672,8 +673,8 @@ function CameraView({ onPoppedIn }: { onPoppedIn: () => void }) {
   const currentUrl = transitioning || waitingForStreamToken
     ? ''
     : streamMode === 'stream'
-      ? appendToken(`/api/v1/printers/${id}/camera/stream?fps=${fps}&t=${imageKey}&viewer=${viewerId}`)
-      : appendToken(`/api/v1/printers/${id}/camera/snapshot?t=${imageKey}`);
+      ? appendToken(`/api/v1/printers/${id}/camera/stream?fps=${fps}&source=${cameraSource}&t=${imageKey}&viewer=${viewerId}`)
+      : appendToken(`/api/v1/printers/${id}/camera/snapshot?source=${cameraSource}&t=${imageKey}`);
   // The img gets its src from here, at commit, never from a prop (#3431).
   const attachImg = useStreamImgRef(imgRef, currentUrl);
 
@@ -775,6 +776,40 @@ function CameraView({ onPoppedIn }: { onPoppedIn: () => void }) {
               {t('camera.snapshot')}
             </button>
           </div>
+          {Boolean(printer?.external_camera_enabled && printer?.external_camera_url) && (
+            <div className="inline-flex items-center bg-bambu-dark-secondary rounded p-0.5 border border-bambu-dark-tertiary text-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  setCameraSource('chamber');
+                  setImageKey(Date.now());
+                }}
+                disabled={isDisabled}
+                className={`px-2.5 py-1 text-xs rounded transition-colors ${
+                  cameraSource === 'chamber'
+                    ? 'bg-bambu-green text-white shadow-sm'
+                    : 'text-bambu-gray hover:text-white disabled:opacity-50'
+                }`}
+              >
+                Chamber
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCameraSource('external');
+                  setImageKey(Date.now());
+                }}
+                disabled={isDisabled}
+                className={`px-2.5 py-1 text-xs rounded transition-colors ${
+                  cameraSource === 'external'
+                    ? 'bg-bambu-green text-white shadow-sm'
+                    : 'text-bambu-gray hover:text-white disabled:opacity-50'
+                }`}
+              >
+                External
+              </button>
+            </div>
+          )}
           <button
             onClick={() => chamberLightMutation.mutate(!status?.chamber_light)}
             disabled={!status?.connected || chamberLightMutation.isPending || !hasPermission('printers:control')}

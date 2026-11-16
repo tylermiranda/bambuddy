@@ -1261,11 +1261,17 @@ async def camera_stream(
     async with database.async_session() as db:
         printer = await get_printer_or_404(printer_id, db)
 
-    # Check for external camera first (honoring source query param if provided)
-    use_external = (
-        (source == "external") or
-        (source != "chamber" and printer.external_camera_enabled and bool(printer.external_camera_url))
-    )
+    # Check camera source: default to built-in chamber camera if configured,
+    # otherwise fall back to external camera if configured
+    has_builtin = bool(printer.ip_address and printer.access_code)
+    if source == "external":
+        use_external = True
+    elif source == "chamber":
+        use_external = False
+    else:
+        # Default to built-in camera if available, otherwise external
+        use_external = bool(not has_builtin and printer.external_camera_enabled and printer.external_camera_url)
+
     if source == "external" and not (printer.external_camera_enabled and printer.external_camera_url):
         raise HTTPException(404, "External camera not configured")
 
@@ -1625,10 +1631,17 @@ async def _snapshot_response(printer_id: int, printer: Printer, source: str | No
         "Content-Disposition": f'inline; filename="snapshot_{printer_id}.jpg"',
     }
 
-    use_external = (
-        (source == "external") or
-        (source != "chamber" and printer.external_camera_enabled and bool(printer.external_camera_url))
-    )
+    # Check camera source: default to built-in chamber camera if configured,
+    # otherwise fall back to external camera if configured
+    has_builtin = bool(printer.ip_address and printer.access_code)
+    if source == "external":
+        use_external = True
+    elif source == "chamber":
+        use_external = False
+    else:
+        # Default to built-in camera if available, otherwise external
+        use_external = bool(not has_builtin and printer.external_camera_enabled and printer.external_camera_url)
+
     if source == "external" and not (printer.external_camera_enabled and printer.external_camera_url):
         raise HTTPException(404, "External camera not configured")
 

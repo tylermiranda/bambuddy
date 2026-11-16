@@ -9347,7 +9347,7 @@ export function PrintersPage() {
   // every page (#2737).
   const { openEmbeddedCamera } = useEmbeddedCameras();
   // Opened from a card, a camera belongs to this page (shown nowhere else).
-  const openCardCamera = useCallback((id: number, name: string) => openEmbeddedCamera(id, name, 'printers'), [openEmbeddedCamera]);
+  const openCardCamera = useCallback((id: number, name: string) => openEmbeddedCamera(id, name, 'printers', 'chamber'), [openEmbeddedCamera]);
 
   const { data: printers, isLoading } = useQuery({
     queryKey: ['printers'],
@@ -10335,7 +10335,7 @@ export function PrintersPage() {
             // A wall tile has no room for a split button, so it follows the
             // mode the card buttons last chose.
             if (cameraViewMode === 'embedded') {
-              openEmbeddedCamera(id, name, 'printers');
+              openEmbeddedCamera(id, name, 'printers', 'chamber');
             } else {
               openCameraWindow(id);
             }

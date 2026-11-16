@@ -339,7 +339,8 @@ export function StreamOverlayPage() {
   // Append the kiosk token directly rather than leaning on withStreamToken's
   // module cache — the cache is populated by an effect and would miss the first
   // render (a 401 flash before the retry). The logged-in path keeps the cache.
-  const camPath = `/api/v1/printers/${id}/camera/stream?fps=${config.fps}&t=${imageKey}`;
+  const sourceParam = searchParams.get('source');
+  const camPath = `/api/v1/printers/${id}/camera/stream?fps=${config.fps}${sourceParam ? `&source=${encodeURIComponent(sourceParam)}` : ''}&t=${imageKey}`;
   const streamUrl = kiosk && token
     ? `${camPath}&token=${encodeURIComponent(token)}`
     : withStreamToken(camPath);
