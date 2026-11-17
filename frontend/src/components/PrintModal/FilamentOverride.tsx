@@ -174,11 +174,11 @@ export function FilamentOverride({
                   <span className="w-3" />
                 )}
               </div>
-              {/* Force Color Match checkbox — shown below each filament row */}
+              {/* Force Color Match checkbox — shown below each filament row. Default is true (opt-out). */}
               <label className="inline-flex items-center gap-1.5 text-xs text-bambu-gray cursor-pointer select-none pl-5">
                 <input
                   type="checkbox"
-                  checked={forceColorMatch?.[req.slot_id] ?? false}
+                  checked={forceColorMatch?.[req.slot_id] ?? true}
                   onChange={(e) => onForceColorMatchChange?.(req.slot_id, e.target.checked)}
                   className="accent-bambu-green w-3 h-3"
                 />

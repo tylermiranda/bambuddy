@@ -574,12 +574,12 @@ export function FilamentMapping({
                   </span>
                 )}
               </div>
-              {/* Force Color Match checkbox — matches FilamentOverride's layout. */}
+              {/* Force Color Match checkbox — matches FilamentOverride's layout. Default is true (opt-out). */}
               {canForceMatch && (
                 <label className="inline-flex items-center gap-1.5 text-xs text-bambu-gray cursor-pointer select-none pl-5">
                   <input
                     type="checkbox"
-                    checked={forceColorMatch?.[slotId] ?? false}
+                    checked={forceColorMatch?.[slotId] ?? true}
                     onChange={(e) => onForceColorMatchChange(slotId, e.target.checked)}
                     className="accent-bambu-green w-3 h-3"
                   />

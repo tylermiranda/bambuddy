@@ -407,7 +407,9 @@ def compute_filament_accuracy(archive: PrintArchive, run_aggregate: dict | None 
     latest = (run_aggregate or {}).get("latest_run")
     if latest is not None:
         plate_id, status = latest.plate_id, latest.status
-        actual_grams = latest.filament_used_grams
+        actual_grams = getattr(latest, "filament_used_grams", None)
+        if actual_grams is None:
+            actual_grams = archive.filament_used_grams
     else:
         plate_id, status = archive.plate_id, archive.status
         actual_grams = archive.filament_used_grams
@@ -514,6 +516,7 @@ async def _load_run_aggregates(
             PrintLogEntry.completed_at,
             PrintLogEntry.duration_seconds,
             PrintLogEntry.duration_unmeasured,
+            PrintLogEntry.filament_used_grams,
             func.row_number()
             .over(
                 partition_by=PrintLogEntry.archive_id,
