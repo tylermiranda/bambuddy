@@ -49,14 +49,14 @@ class MaterialPhysics:
 
 
 MATERIAL_PROFILES: dict[str, MaterialPhysics] = {
-    "PLA": MaterialPhysics("PLA", 220.0, 30.0, 38.0, 48.0, 60.0, 21.0, 4.5, False, 255),
-    "PLA-SILK": MaterialPhysics("PLA-SILK", 225.0, 30.0, 40.0, 50.0, 58.0, 14.0, 5.0, False, 255),
-    "PETG": MaterialPhysics("PETG", 250.0, 35.0, 52.0, 66.0, 78.0, 13.0, 5.5, True, 204),
-    "TPU": MaterialPhysics("TPU", 230.0, 30.0, 42.0, 55.0, 72.0, 3.8, 6.0, True, 178),
-    "ABS": MaterialPhysics("ABS", 260.0, 45.0, 72.0, 88.0, 102.0, 16.0, 6.0, False, 102),
-    "ASA": MaterialPhysics("ASA", 260.0, 45.0, 72.0, 88.0, 102.0, 16.0, 6.0, False, 102),
-    "PA": MaterialPhysics("PA", 280.0, 45.0, 68.0, 82.0, 98.0, 12.0, 6.0, True, 76),
-    "PC": MaterialPhysics("PC", 280.0, 50.0, 95.0, 115.0, 135.0, 14.0, 6.5, True, 76),
+    "PLA": MaterialPhysics("PLA", 220.0, 30.0, 18.0, 35.0, 58.0, 21.0, 1.8, False, 255),
+    "PLA-SILK": MaterialPhysics("PLA-SILK", 225.0, 30.0, 20.0, 36.0, 56.0, 14.0, 2.1, False, 255),
+    "PETG": MaterialPhysics("PETG", 250.0, 42.0, 39.0, 48.0, 76.0, 13.0, 2.4, True, 204),
+    "TPU": MaterialPhysics("TPU", 230.0, 30.0, 18.0, 35.0, 68.0, 3.8, 2.6, True, 178),
+    "ABS": MaterialPhysics("ABS", 260.0, 45.0, 52.0, 72.0, 102.0, 16.0, 3.2, False, 102),
+    "ASA": MaterialPhysics("ASA", 260.0, 45.0, 52.0, 72.0, 102.0, 16.0, 3.2, False, 102),
+    "PA": MaterialPhysics("PA", 280.0, 45.0, 50.0, 70.0, 98.0, 12.0, 3.2, True, 76),
+    "PC": MaterialPhysics("PC", 280.0, 50.0, 65.0, 92.0, 135.0, 14.0, 3.5, True, 76),
 }
 
 _PLATE_NUM_RE = re.compile(r"plate_(\d+)\.gcode$", re.IGNORECASE)
@@ -340,9 +340,9 @@ def assess_gcode_text(
             layer_tqi = 0.0
         else:
             arr = np.asarray(layer_cell_tqis, dtype=np.float64)
-            p90_pos = float(np.percentile(arr, 90))
-            p10_neg = float(np.percentile(arr, 10))
-            layer_tqi = p90_pos if abs(p90_pos) >= abs(p10_neg) else p10_neg
+            p80_pos = float(np.percentile(arr, 80))
+            p20_neg = float(np.percentile(arr, 20))
+            layer_tqi = p80_pos if abs(p80_pos) >= abs(p20_neg) else p20_neg
 
         flags: list[str] = []
         if layer_tqi > 45.0 or layer_overhang_low_fan:
@@ -371,8 +371,8 @@ def assess_gcode_text(
             )
         )
 
-        # Promote current layer's timestamps into previous-layer grid for the next Z layer
-        np.maximum(prev_layer_cell_t, cur_layer_cell_t, out=prev_layer_cell_t)
+        # Promote current layer's cell first-visit timestamps for the next Z layer
+        prev_layer_cell_t[:] = cur_layer_cell_t
         cur_layer_cell_t.fill(-1e9)
 
         prev_layer_z = layer_z
@@ -527,30 +527,40 @@ def assess_gcode_text(
                 elif "infill" in cur_feature or "inner wall" in cur_feature or cur_feature == "perimeter":
                     layer_infill_time += dt
 
-                if ("overhang" in cur_feature or "bridge" in cur_feature) and prof.name in ("PLA", "PLA-SILK", "PETG"):
-                    if fan_pct_now < 60.0 and layer_idx >= 2:
+                is_ext_overhang = "overhang wall" in cur_feature or cur_feature in ("overhang", "bridge")
+                if is_ext_overhang and layer_idx >= 2:
+                    min_oh_fan = 55.0 if prof.name in ("PLA", "PLA-SILK") else (25.0 if prof.name == "PETG" else 0.0)
+                    if min_oh_fan > 0.0 and fan_pct_now < min_oh_fan:
                         layer_overhang_low_fan = True
 
                 if tz > 40.0 and speed_mms > 200.0:
                     upper_fast_moves = True
 
                 # Evaluate inter-layer cooling once per 8mm cell per layer against prev_layer_cell_t
+                # Recording only the FIRST touch per cell per layer prevents late-layer infill from
+                # overwriting early-layer perimeter timestamps inside the same 8mm cell.
                 mx = 0.5 * (x + tx)
                 my = 0.5 * (y + ty)
                 cx = max(0, min(bed_grid - 1, int((mx / bed_span) * (bed_grid - 1))))
                 cy = max(0, min(bed_grid - 1, int((my / bed_span) * (bed_grid - 1))))
-                if layer_idx > 0 and cur_layer_cell_t[cx, cy] < -1e8:
-                    last_visit = float(prev_layer_cell_t[cx, cy])
-                    if last_visit > -1e8:
-                        dt_rev = max(0.05, min(300.0, t_now - last_visit))
-                        tau = (
-                            prof.tau_base_s
-                            * ((line_width * layer_h) / (0.42 * 0.20))
-                            * (1.0 / (0.35 + 0.65 * (fan_pct_now / 100.0)))
-                        )
-                        t_sub = prof.t_amb + (prof.t_nozzle - prof.t_amb) * math.exp(-dt_rev / max(tau, 0.25))
-                        layer_cell_tqis.append(_compute_tqi(t_sub, prof))
-                cur_layer_cell_t[cx, cy] = t_now + dt
+                if cur_layer_cell_t[cx, cy] < -1e8:
+                    if layer_idx > 0:
+                        last_visit = float(prev_layer_cell_t[cx, cy])
+                        if last_visit > -1e8:
+                            dt_rev = max(0.05, min(300.0, t_now - last_visit))
+                            tau = (
+                                prof.tau_base_s
+                                * ((line_width * layer_h) / (0.42 * 0.20))
+                                * (1.0 / (0.30 + 0.70 * (fan_pct_now / 100.0)))
+                            )
+                            t_eff_amb = (
+                                prof.t_amb - 12.0 * max(0.0, (fan_pct_now - 50.0) / 50.0)
+                                if prof.t_amb >= 40.0
+                                else prof.t_amb
+                            )
+                            t_sub = t_eff_amb + (prof.t_nozzle - t_eff_amb) * math.exp(-dt_rev / max(tau, 0.20))
+                            layer_cell_tqis.append(_compute_tqi(t_sub, prof))
+                    cur_layer_cell_t[cx, cy] = t_now + dt
             elif tz > 40.0 and speed_mms > 200.0 and dist > 5.0:
                 upper_fast_moves = True
 
@@ -572,15 +582,15 @@ def assess_gcode_text(
     flow_layers = [lp for lp in layers_out if "volumetric_flow_ceiling" in lp.risk_flags]
     max_flow_seen = max((lp.max_flow_mm3s for lp in layers_out), default=0.0)
 
-    # Outer-wall gloss banding check
+    # Outer-wall gloss banding check (ignore initial bottom-shell ramp and minor slowdowns)
     gloss_jump_layers: list[int] = []
     prev_ow: float | None = None
     for lp in layers_out:
-        if lp.outer_wall_speed_mms is not None and lp.layer >= 2:
+        if lp.outer_wall_speed_mms is not None and lp.layer >= 4:
             if prev_ow is not None:
                 hi = max(prev_ow, lp.outer_wall_speed_mms)
                 lo = max(min(prev_ow, lp.outer_wall_speed_mms), 1.0)
-                if (hi / lo) > 1.35:
+                if (hi / lo) > 1.45 and (hi - lo) >= 30.0:
                     gloss_jump_layers.append(lp.layer)
                     if "outer_wall_gloss_banding" not in lp.risk_flags:
                         lp.risk_flags.append("outer_wall_gloss_banding")
@@ -804,7 +814,8 @@ def enhance_3mf_plate(
         raise ValueError("Enhance requires a sliced .gcode.3mf package")
 
     before = assess_gcode_text(gcode_text, plate_id=resolved_plate, settings_dict=settings_dict)
-    resolved = _resolve_profile_from_settings(settings_dict, gcode_text[:16384])
+    config_sample = gcode_text[:16384] + "\n" + gcode_text[-16384:] if len(gcode_text) > 32768 else gcode_text
+    resolved = _resolve_profile_from_settings(settings_dict, config_sample)
     prof = resolved.physics
     accel = resolved.default_accel_mms2
 
@@ -913,6 +924,16 @@ def enhance_3mf_plate(
             continue
 
         if op not in ("G0", "G1", "G2", "G3"):
+            if op == "M106" and in_print and priority in ("strong", "balanced"):
+                lp_cur = layer_map.get(cur_layer_idx)
+                if lp_cur is not None and lp_cur.tqi < -50.0:
+                    p_idx = _read_axis(cmd_clean, "P")
+                    s_val = _read_axis(cmd_clean, "S")
+                    if s_val is not None and s_val > 102 and (p_idx is None or int(p_idx) in (0, 1)):
+                        capped_cmd = re.sub(r"\bS\d+", "S102", cmd_clean, count=1)
+                        out_lines.append(f"{capped_cmd}{comment_suffix}")
+                        warmed_layers.add(cur_layer_idx)
+                        continue
             out_lines.append(raw)
             continue
 

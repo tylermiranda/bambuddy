@@ -168,6 +168,37 @@ def test_enhance_preserves_exact_xyze_coordinates_caps_flow_and_updates_md5(tmp_
 
 
 @pytest.mark.unit
+def test_normal_pla_long_layers_stay_in_ideal_tqi_without_false_cold_alarm() -> None:
+    """Open-air PLA layers cooled to ~30C ambient with 100% fan should be healthy, not delaminating."""
+    lines = [
+        "M83",
+        "M106 P1 S255",
+        "; MACHINE_START_GCODE_END",
+    ]
+    for layer in range(6):
+        z = round(0.2 * (layer + 1), 2)
+        lines.extend(
+            [
+                "; CHANGE_LAYER",
+                f"; Z_HEIGHT: {z}",
+                "; FEATURE: Outer wall",
+                f"G0 X20 Y20 Z{z} F18000",
+                "G1 X220 Y20 E6.5 F900",
+                "G1 X220 Y220 E6.5 F900",
+                "; FEATURE: Sparse infill",
+                "G1 X20 Y220 E6.5 F900",
+                "G1 X20 Y20 E6.5 F900",
+            ]
+        )
+    lines.append("; EXECUTABLE_BLOCK_END")
+    res = assess_gcode_text("\n".join(lines), settings_dict={"filament_type": ["PLA"]})
+    assert res.tqi_cold_layers == 0
+    assert res.tqi_hot_layers == 0
+    assert res.health_score >= 90
+    assert -25.0 <= res.tqi_mean <= 25.0
+
+
+@pytest.mark.unit
 def test_assess_performance_under_two_seconds() -> None:
     """50k-line plate must assess well under the 1.5s budget."""
     chunk = [
