@@ -101,23 +101,44 @@ def _normalize_material_key(raw_type: str, raw_preset_id: str = "") -> str:
     return "PLA"
 
 
-def _resolve_profile_from_settings(settings_dict: dict | None, gcode_head: str) -> ResolvedProfile:
+def _slot_item(val: object, slot: int) -> object:
+    if isinstance(val, list):
+        if not val:
+            return None
+        return val[slot] if 0 <= slot < len(val) else val[0]
+    return val
+
+
+def _resolve_profile_from_settings(settings_dict: dict | None, gcode_sample: str) -> ResolvedProfile:
     raw_type = ""
     raw_preset = ""
     nozzle_override: float | None = None
     flow_override: float | None = None
+    nozzle_diam: float = 0.4
     accel = 6000.0
 
+    # Detect first active AMS filament slot (M620 S<slot> or T<slot>) so multi-slot
+    # projects don't inherit an unused Slot 1 TPU volumetric cap on a Slot 2 PLA print!
+    active_slot = 0
+    m_slot = re.search(r"(?:^|\n)\s*M620\s+S(\d+)", gcode_sample)
+    if m_slot:
+        cand = int(m_slot.group(1))
+        if 0 <= cand <= 15:
+            active_slot = cand
+
     if isinstance(settings_dict, dict):
-        raw_type = _first_str(settings_dict.get("filament_type"))
-        raw_preset = _first_str(settings_dict.get("filament_settings_id"))
-        nozzle_override = _first_float(settings_dict.get("nozzle_temperature"))
-        flow_override = _first_float(settings_dict.get("filament_max_volumetric_speed"))
+        raw_type = _first_str(_slot_item(settings_dict.get("filament_type"), active_slot))
+        raw_preset = _first_str(_slot_item(settings_dict.get("filament_settings_id"), active_slot))
+        nozzle_override = _first_float(_slot_item(settings_dict.get("nozzle_temperature"), active_slot))
+        flow_override = _first_float(_slot_item(settings_dict.get("filament_max_volumetric_speed"), active_slot))
+        nd = _first_float(_slot_item(settings_dict.get("nozzle_diameter"), 0))
+        if nd and 0.15 <= nd <= 1.2:
+            nozzle_diam = nd
         parsed_accel = _first_float(settings_dict.get("default_acceleration"))
         if parsed_accel and parsed_accel > 100.0:
             accel = parsed_accel
 
-    for line in gcode_head.splitlines()[:250]:
+    for line in gcode_sample.splitlines():
         if not line.startswith(";"):
             continue
         body = line[1:].strip()
@@ -125,22 +146,31 @@ def _resolve_profile_from_settings(settings_dict: dict | None, gcode_head: str) 
             continue
         k, v = [p.strip() for p in body.split("=", 1)]
         kl = k.lower()
-        first_v = v.split(";")[0].split(",")[0].strip()
+        tokens = [tok.strip().strip('"') for tok in re.split(r"[;,]", v) if tok.strip()]
+        picked = tokens[active_slot] if 0 <= active_slot < len(tokens) else (tokens[0] if tokens else "")
         if kl == "filament_type" and not raw_type:
-            raw_type = first_v
+            raw_type = picked
         elif kl == "filament_settings_id" and not raw_preset:
-            raw_preset = first_v
+            raw_preset = picked
         elif kl == "nozzle_temperature" and nozzle_override is None:
-            nozzle_override = _first_float(first_v)
+            nozzle_override = _first_float(picked)
         elif kl == "filament_max_volumetric_speed" and flow_override is None:
-            flow_override = _first_float(first_v)
+            flow_override = _first_float(picked)
+        elif kl == "nozzle_diameter":
+            nd = _first_float(picked)
+            if nd and 0.15 <= nd <= 1.2:
+                nozzle_diam = nd
         elif kl == "default_acceleration":
-            pa = _first_float(first_v)
+            pa = _first_float(picked)
             if pa and pa > 100.0:
                 accel = pa
 
     mat_key = _normalize_material_key(raw_type, raw_preset)
     base = MATERIAL_PROFILES[mat_key]
+    # Guard against unconfigured slot placeholder (e.g. 2 mm³/s on a >=0.4mm non-TPU print)
+    if flow_override is not None and flow_override <= 3.0 and nozzle_diam >= 0.35 and mat_key != "TPU":
+        flow_override = None
+
     physics = MaterialPhysics(
         name=base.name,
         t_nozzle=nozzle_override if (nozzle_override and nozzle_override >= 170.0) else base.t_nozzle,
@@ -237,113 +267,22 @@ def assess_gcode_text(
     settings_dict: dict | None = None,
     ams_humidity_pct: float | None = None,
 ) -> AssessResponse:
-    """Run single-pass kinematic, 16x16 spatial thermal TQI, and risk analysis."""
-    resolved = _resolve_profile_from_settings(settings_dict, gcode_text[:16384])
+    """Run single-pass kinematic, 32x32 bed-cell inter-layer thermal TQI, and risk analysis."""
+    # Bambu Studio writes `; CONFIG_BLOCK_START` at the tail of `.gcode` as well as head
+    config_sample = gcode_text[:16384] + "\n" + gcode_text[-16384:] if len(gcode_text) > 32768 else gcode_text
+    resolved = _resolve_profile_from_settings(settings_dict, config_sample)
     prof = resolved.physics
     accel = resolved.default_accel_mms2
 
     has_start_end_marker = "; MACHINE_START_GCODE_END" in gcode_text
 
-    # Quick first pass for XY bounding box of extruding print moves so our 16x16
-    # grid maps tightly to the printed part rather than the whole 256x256 bed.
-    in_print = not has_start_end_marker
-    rel_e = True
-    x = y = z = e = 0.0
-    has_pos = False
-    min_x = min_y = float("inf")
-    max_x = max_y = float("-inf")
-    max_z = 0.0
-    l0_min_x = l0_min_y = float("inf")
-    l0_max_x = l0_max_y = float("-inf")
-    saw_brim_or_skirt = False
-    cur_feature = "wall"
-    cur_layer_idx = 0
-    saw_layer_marker = False
-
-    lines = gcode_text.splitlines()
-
-    for raw in lines:
-        s = raw.strip()
-        if not s:
-            continue
-        if s[0] == ";":
-            body = s[1:].strip()
-            bu = body.upper()
-            if bu.startswith("MACHINE_START_GCODE_END"):
-                in_print = True
-            elif bu.startswith("EXECUTABLE_BLOCK_END"):
-                break
-            elif bu in ("CHANGE_LAYER", "LAYER_CHANGE") or bu.startswith(("CHANGE_LAYER ", "LAYER_CHANGE ")):
-                if saw_layer_marker:
-                    cur_layer_idx += 1
-                saw_layer_marker = True
-            elif ":" in body:
-                k, v = body.split(":", 1)
-                ku = k.strip().upper()
-                vl = v.strip().lower()
-                if ku in ("FEATURE", "TYPE"):
-                    cur_feature = vl
-                    if "skirt" in vl or "brim" in vl or "raft" in vl:
-                        saw_brim_or_skirt = True
-            continue
-
-        cmd_part = s.split(";", 1)[0].strip()
-        if not cmd_part:
-            continue
-        c0 = cmd_part[:4].upper()
-        if c0.startswith("M83"):
-            rel_e = True
-            continue
-        if c0.startswith("M82"):
-            rel_e = False
-            continue
-        if c0.startswith("G92"):
-            re_val = _read_axis(cmd_part, "E")
-            if re_val is not None:
-                e = re_val
-            continue
-        if not (cmd_part.startswith(("G0 ", "G1 ", "G2 ", "G3 ", "G0\t", "G1\t"))):
-            continue
-
-        nx = _read_axis(cmd_part, "X")
-        ny = _read_axis(cmd_part, "Y")
-        nz = _read_axis(cmd_part, "Z")
-        re_val = _read_axis(cmd_part, "E")
-        tx = x if nx is None else nx
-        ty = y if ny is None else ny
-        tz = z if nz is None else nz
-        de = 0.0
-        if re_val is not None:
-            de = re_val if rel_e else (re_val - e)
-            e = re_val
-
-        if in_print and de > 0.0 and has_pos and (tx != x or ty != y):
-            if tx < min_x:
-                min_x = tx
-            if ty < min_y:
-                min_y = ty
-            if tx > max_x:
-                max_x = tx
-            if ty > max_y:
-                max_y = ty
-            if tz > max_z:
-                max_z = tz
-            if cur_layer_idx == 0 and tz <= 0.6:
-                l0_min_x = min(l0_min_x, x, tx)
-                l0_max_x = max(l0_max_x, x, tx)
-                l0_min_y = min(l0_min_y, y, ty)
-                l0_max_y = max(l0_max_y, y, ty)
-
-        x, y, z = tx, ty, tz
-        has_pos = True
-
-    if not math.isfinite(min_x) or not math.isfinite(max_x):
-        min_x, max_x, min_y, max_y = 0.0, 256.0, 0.0, 256.0
-    span_x = max(max_x - min_x, 1.0)
-    span_y = max(max_y - min_y, 1.0)
-
-    # Pass 2: Full kinematic + 16x16 XY-cell thermal simulation
-    cell_last_t = np.full((GRID_SIZE, GRID_SIZE), -1e9, dtype=np.float64)
+    # Single-pass kinematic + 32x32 XY bed-grid (~8mm cells over 256mm bed) inter-layer thermal model.
+    # Separating `prev_layer_cell_t` from `cur_layer_cell_t` ensures side-by-side perimeters/infill
+    # within the SAME layer do not masquerade as 0.1s vertical layer revisit times!
+    bed_grid = 32
+    bed_span = 256.0
+    prev_layer_cell_t = np.full((bed_grid, bed_grid), -1e9, dtype=np.float64)
+    cur_layer_cell_t = np.full((bed_grid, bed_grid), -1e9, dtype=np.float64)
 
     in_print = not has_start_end_marker
     rel_e = True
@@ -351,9 +290,17 @@ def assess_gcode_text(
     has_pos = False
     feed_mm_min = 3000.0
     fan_pwm = 0
+    aux_fan_pwm = 0
     line_width = 0.42
     cur_feature = "wall"
     t_now = 0.0
+
+    min_x = min_y = float("inf")
+    max_x = max_y = float("-inf")
+    max_z = 0.0
+    l0_min_x = l0_min_y = float("inf")
+    l0_max_x = l0_max_y = float("-inf")
+    saw_brim_or_skirt = False
 
     saw_explicit_layer = False
     layer_idx = 0
@@ -379,6 +326,7 @@ def assess_gcode_text(
         nonlocal layer_max_flow, layer_ow_speed_weighted, layer_ow_dist
         nonlocal layer_fan_sum, layer_ext_time, layer_cell_tqis
         nonlocal layer_overhang_low_fan, layer_infill_time, fast_savings_s
+        nonlocal prev_layer_cell_t, cur_layer_cell_t
 
         if not layer_has_extrusion:
             layer_start_t = t_now
@@ -407,7 +355,7 @@ def assess_gcode_text(
         ow_speed = (layer_ow_speed_weighted / layer_ow_dist) if layer_ow_dist > 0.5 else None
 
         # Estimate safe time savings on cool/safe layers where infill/inner walls can accelerate
-        if layer_tqi < -10.0 and layer_max_flow < 0.80 * prof.max_flow_mm3s:
+        if layer_tqi < 10.0 and layer_max_flow < 0.82 * prof.max_flow_mm3s:
             fast_savings_s += layer_infill_time * 0.22
 
         layers_out.append(
@@ -423,6 +371,10 @@ def assess_gcode_text(
             )
         )
 
+        # Promote current layer's timestamps into previous-layer grid for the next Z layer
+        np.maximum(prev_layer_cell_t, cur_layer_cell_t, out=prev_layer_cell_t)
+        cur_layer_cell_t.fill(-1e9)
+
         prev_layer_z = layer_z
         layer_idx += 1
         layer_has_extrusion = False
@@ -436,11 +388,19 @@ def assess_gcode_text(
         layer_overhang_low_fan = False
         layer_infill_time = 0.0
 
-    for raw in lines:
-        s = raw.strip()
-        if not s:
+    for raw in gcode_text.splitlines():
+        if not raw:
             continue
-        if s[0] == ";":
+        c_first = raw[0]
+        if c_first in (" ", "\t"):
+            s = raw.strip()
+            if not s:
+                continue
+            c_first = s[0]
+        else:
+            s = raw.rstrip("\r")
+
+        if c_first == ";":
             body = s[1:].strip()
             bu = body.upper()
             if bu.startswith("MACHINE_START_GCODE_END"):
@@ -458,6 +418,8 @@ def assess_gcode_text(
                 vs = v.strip()
                 if ku in ("FEATURE", "TYPE"):
                     cur_feature = vs.lower()
+                    if "skirt" in cur_feature or "brim" in cur_feature or "raft" in cur_feature:
+                        saw_brim_or_skirt = True
                 elif ku in ("LINE_WIDTH", "WIDTH"):
                     pw = _first_float(vs)
                     if pw and pw > 0.05:
@@ -468,35 +430,35 @@ def assess_gcode_text(
                         layer_z = pz
             continue
 
-        cmd_part = s.split(";", 1)[0].strip()
+        if c_first not in ("G", "M", "g", "m"):
+            continue
+
+        cmd_part = s.split(";", 1)[0].strip() if ";" in s else s.strip()
         if not cmd_part:
             continue
-        parts = cmd_part.split()
-        op = parts[0].upper()
-
-        if op == "M83":
-            rel_e = True
-            continue
-        if op == "M82":
-            rel_e = False
-            continue
-        if op == "G92":
-            re_val = _read_axis(cmd_part, "E")
-            if re_val is not None:
-                e = re_val
-            continue
-        if op == "M107":
-            fan_pwm = 0
-            continue
-        if op == "M106":
-            p_idx = _read_axis(cmd_part, "P")
-            s_val = _read_axis(cmd_part, "S")
-            # Bambu uses M106 P1 S<pwm> for part cooling fan; generic uses M106 S<pwm> or P0.
-            if s_val is not None and (p_idx is None or int(p_idx) in (0, 1)):
-                fan_pwm = max(0, min(255, int(round(s_val))))
-            continue
+        sp = cmd_part.find(" ")
+        op = (cmd_part[:sp] if sp > 0 else cmd_part).upper()
 
         if op not in ("G0", "G1", "G2", "G3"):
+            if op == "M83":
+                rel_e = True
+            elif op == "M82":
+                rel_e = False
+            elif op == "G92":
+                re_val = _read_axis(cmd_part, "E")
+                if re_val is not None:
+                    e = re_val
+            elif op == "M107":
+                fan_pwm = 0
+            elif op == "M106":
+                p_idx = _read_axis(cmd_part, "P")
+                s_val = _read_axis(cmd_part, "S")
+                if s_val is not None:
+                    pwm = max(0, min(255, int(round(s_val))))
+                    if p_idx is None or int(p_idx) in (0, 1):
+                        fan_pwm = pwm
+                    elif int(p_idx) == 2:
+                        aux_fan_pwm = pwm
             continue
 
         f_val = _read_axis(cmd_part, "F")
@@ -533,13 +495,30 @@ def assess_gcode_text(
                     layer_z = tz if tz > 0 else layer_z
                 layer_has_extrusion = True
 
+                if tx < min_x:
+                    min_x = tx
+                if ty < min_y:
+                    min_y = ty
+                if tx > max_x:
+                    max_x = tx
+                if ty > max_y:
+                    max_y = ty
+                if tz > max_z:
+                    max_z = tz
+                if layer_idx == 0 and tz <= 0.6:
+                    l0_min_x = min(l0_min_x, x, tx)
+                    l0_max_x = max(l0_max_x, x, tx)
+                    l0_min_y = min(l0_min_y, y, ty)
+                    l0_max_y = max(l0_max_y, y, ty)
+
                 layer_h = max(0.06, min(0.60, layer_z - prev_layer_z if layer_z > prev_layer_z else 0.20))
                 flow = (de * FILAMENT_AREA_MM2) / max(dt, 1e-4)
                 if flow > layer_max_flow:
                     layer_max_flow = flow
 
-                fan_pct_now = (fan_pwm / 255.0) * 100.0
-                layer_fan_sum += fan_pwm * dt
+                eff_pwm = min(255.0, fan_pwm + 0.35 * aux_fan_pwm)
+                fan_pct_now = (eff_pwm / 255.0) * 100.0
+                layer_fan_sum += eff_pwm * dt
                 layer_ext_time += dt
 
                 if "outer wall" in cur_feature or cur_feature == "external perimeter":
@@ -552,26 +531,27 @@ def assess_gcode_text(
                     if fan_pct_now < 60.0 and layer_idx >= 2:
                         layer_overhang_low_fan = True
 
-                if max_z > 0 and tz > 0.5 * max_z and speed_mms > 200.0:
+                if tz > 40.0 and speed_mms > 200.0:
                     upper_fast_moves = True
 
-                # Map midpoint onto 16x16 XY grid
+                # Evaluate inter-layer cooling once per 8mm cell per layer against prev_layer_cell_t
                 mx = 0.5 * (x + tx)
                 my = 0.5 * (y + ty)
-                cx = max(0, min(GRID_SIZE - 1, int(((mx - min_x) / span_x) * (GRID_SIZE - 1))))
-                cy = max(0, min(GRID_SIZE - 1, int(((my - min_y) / span_y) * (GRID_SIZE - 1))))
-                last_visit = float(cell_last_t[cx, cy])
-                if layer_idx > 0 and last_visit > -1e8:
-                    dt_rev = max(0.05, min(300.0, t_now - last_visit))
-                    tau = (
-                        prof.tau_base_s
-                        * ((line_width * layer_h) / (0.42 * 0.20))
-                        * (1.0 / (0.35 + 0.65 * (fan_pct_now / 100.0)))
-                    )
-                    t_sub = prof.t_amb + (prof.t_nozzle - prof.t_amb) * math.exp(-dt_rev / max(tau, 0.25))
-                    layer_cell_tqis.append(_compute_tqi(t_sub, prof))
-                cell_last_t[cx, cy] = t_now + dt
-            elif max_z > 0 and tz > 0.5 * max_z and speed_mms > 200.0 and dist > 5.0:
+                cx = max(0, min(bed_grid - 1, int((mx / bed_span) * (bed_grid - 1))))
+                cy = max(0, min(bed_grid - 1, int((my / bed_span) * (bed_grid - 1))))
+                if layer_idx > 0 and cur_layer_cell_t[cx, cy] < -1e8:
+                    last_visit = float(prev_layer_cell_t[cx, cy])
+                    if last_visit > -1e8:
+                        dt_rev = max(0.05, min(300.0, t_now - last_visit))
+                        tau = (
+                            prof.tau_base_s
+                            * ((line_width * layer_h) / (0.42 * 0.20))
+                            * (1.0 / (0.35 + 0.65 * (fan_pct_now / 100.0)))
+                        )
+                        t_sub = prof.t_amb + (prof.t_nozzle - prof.t_amb) * math.exp(-dt_rev / max(tau, 0.25))
+                        layer_cell_tqis.append(_compute_tqi(t_sub, prof))
+                cur_layer_cell_t[cx, cy] = t_now + dt
+            elif tz > 40.0 and speed_mms > 200.0 and dist > 5.0:
                 upper_fast_moves = True
 
             t_now += dt
@@ -580,6 +560,9 @@ def assess_gcode_text(
 
     if in_print and layer_has_extrusion:
         flush_layer()
+
+    span_x = max(max_x - min_x, 1.0) if math.isfinite(min_x) else 256.0
+    span_y = max(max_y - min_y, 1.0) if math.isfinite(min_y) else 256.0
 
     total_layers = len(layers_out)
     tqi_vals = [lp.tqi for lp in layers_out]
@@ -997,7 +980,7 @@ def enhance_3mf_plate(
                 k_slow = max(0.50, 35.0 / max(layer_tqi, 36.0))
                 target_speed_mms = max(15.0, orig_speed_mms * k_slow)
                 cooled_layers.add(cur_layer_idx)
-            elif layer_tqi < -10.0 and not has_slenderness_risk:
+            elif layer_tqi < 10.0 and not has_slenderness_risk:
                 k_fast = 1.0
                 if priority == "balanced":
                     if is_infill:
