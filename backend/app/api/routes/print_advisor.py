@@ -83,9 +83,15 @@ def _live_printer_context(
         if state is None:
             return None, None, None
 
-        # 1. Max AMS humidity (%)
+        # 1. Max AMS humidity (%) — raw_data["ams"] is normalized to list[dict] in PrinterState
         raw = getattr(state, "raw_data", None) or {}
-        ams_block = (raw.get("ams") or {}).get("ams") or getattr(state, "ams", None) or []
+        raw_ams = raw.get("ams") if isinstance(raw, dict) else None
+        if isinstance(raw_ams, list):
+            ams_block = raw_ams
+        elif isinstance(raw_ams, dict):
+            ams_block = raw_ams.get("ams") or []
+        else:
+            ams_block = getattr(state, "ams", None) or []
         vals: list[float] = []
         for unit in ams_block:
             unit_dict = unit if isinstance(unit, dict) else getattr(unit, "__dict__", {})
