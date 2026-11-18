@@ -2471,11 +2471,13 @@ async def list_files(
         print_time = None
         filament_grams = None
         sliced_for_model = None
+        print_advisor = None
         if f.file_metadata:
             print_name = f.file_metadata.get("print_name")
             print_time = f.file_metadata.get("print_time_seconds")
             filament_grams = f.file_metadata.get("filament_used_grams")
             sliced_for_model = f.file_metadata.get("sliced_for_model")
+            print_advisor = f.file_metadata.get("print_advisor")
 
         file_list.append(
             FileListResponse(
@@ -2496,6 +2498,7 @@ async def list_files(
                 print_time_seconds=print_time,
                 filament_used_grams=filament_grams,
                 sliced_for_model=sliced_for_model,
+                print_advisor=print_advisor,
                 tags=[TagSummary(id=t.id, name=t.name) for t in f.tags],
                 variant_group_id=f.variant_group_id,
                 variant_count=variant_counts.get(f.variant_group_id, 0) if f.variant_group_id else 0,
@@ -5103,6 +5106,12 @@ async def slice_and_persist(
         metadata["external_write_fallback"] = external_fallback
     if extra_metadata:
         metadata.update(extra_metadata)
+
+    from backend.app.services.print_advisor import try_build_advisor_badge_summary
+
+    advisor_badge = await asyncio.to_thread(try_build_advisor_badge_summary, out_path)
+    if advisor_badge is not None:
+        metadata["print_advisor"] = advisor_badge
 
     from backend.app.services.slice_dispatch import slice_dispatch as _dispatch
 

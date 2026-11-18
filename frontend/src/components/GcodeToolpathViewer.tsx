@@ -22,7 +22,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Loader2, FileWarning } from 'lucide-react';
 
-import { getAuthToken } from '../api/client';
+import { getAuthToken, type LayerThermalPoint } from '../api/client';
 import {
   parseGcodeToolpath,
   layersByFilament,
@@ -48,21 +48,14 @@ interface GcodeToolpathViewerProps {
    * being looked at for -- feature colouring answers a different question.
    */
   filamentColors?: string[];
+  advisorLayers?: LayerThermalPoint[];
+  externalLayerRange?: [number, number] | null;
+  requestedViewMode?: ViewMode | null;
   className?: string;
 }
 
-/**
- * The colour modes worth offering.
- *
- * Upstream also exposes speed, fan and temperature, but its own implementation
- * derives those from *settings* rather than the toolpath, because its slicing
- * kernel doesn't expose them per segment. Reading them out of the G-code would
- * give real values -- `F`, `M106` and `M104` are right there in the file -- so
- * they are left out until the parser carries them, rather than shipped as
- * plausible-looking guesses.
- */
-const VIEW_MODES = ['filament', 'feature', 'height', 'width'] as const;
-type ViewMode = (typeof VIEW_MODES)[number];
+const VIEW_MODES = ['filament', 'feature', 'tqi', 'speed', 'flow', 'risk', 'height', 'width'] as const;
+export type ViewMode = (typeof VIEW_MODES)[number];
 
 /** Feature rows for the legend, in the order the slicer lists them. */
 const LEGEND_ENTRIES: Array<{ type: number; key: string; fallback: string }> = [
@@ -108,10 +101,49 @@ function formatScale(value: number): string {
   return Math.abs(value) < 10 ? value.toFixed(2) : value.toFixed(0);
 }
 
+function packRgb(r: number, g: number, b: number): number {
+  const clamp = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
+  return (clamp(r) << 16) | (clamp(g) << 8) | clamp(b);
+}
+
+/** Diverging TQI ramp: -100 Cold Blue (#3b82f6) -> 0 Ideal Green (#22c55e) -> +50 Amber (#eab308) -> +100 Hot Red (#ef4444). */
+function packTqiColor(tqi: number): number {
+  const clamped = Math.max(-100, Math.min(100, tqi));
+  if (clamped < 0) {
+    const u = (clamped + 100) / 100; // 0 at -100, 1 at 0
+    return packRgb(59 + (34 - 59) * u, 130 + (197 - 130) * u, 246 + (94 - 246) * u);
+  }
+  if (clamped <= 50) {
+    const u = clamped / 50;
+    return packRgb(34 + (234 - 34) * u, 197 + (179 - 197) * u, 94 + (8 - 94) * u);
+  }
+  const u = (clamped - 50) / 50;
+  return packRgb(234 + (239 - 234) * u, 179 + (68 - 179) * u, 8 + (68 - 8) * u);
+}
+
+/** Map [0..1] onto the renderer's DEFAULT_RANGES_COLORS ramp. */
+function packRampFraction(t: number): number {
+  const ramp = DEFAULT_RANGES_COLORS as number[][];
+  const u = Math.max(0, Math.min(1, Number.isFinite(t) ? t : 0)) * (ramp.length - 1);
+  const lo = Math.floor(u);
+  const hi = Math.min(ramp.length - 1, lo + 1);
+  const f = u - lo;
+  const a = ramp[lo] ?? [0, 0.68, 0.26];
+  const b = ramp[hi] ?? a;
+  return packRgb(
+    (a[0] + (b[0] - a[0]) * f) * 255,
+    (a[1] + (b[1] - a[1]) * f) * 255,
+    (a[2] + (b[2] - a[2]) * f) * 255,
+  );
+}
+
 export function GcodeToolpathViewer({
   gcodeUrl,
   buildVolume = { x: 256, y: 256, z: 256 },
   filamentColors,
+  advisorLayers,
+  externalLayerRange,
+  requestedViewMode,
   className = '',
 }: GcodeToolpathViewerProps) {
   const { t } = useTranslation();
@@ -131,9 +163,23 @@ export function GcodeToolpathViewer({
   useEffect(() => {
     if (hasFilamentColors && !modeChosenRef.current) setViewMode('filament');
   }, [hasFilamentColors]);
+  useEffect(() => {
+    if (requestedViewMode) {
+      modeChosenRef.current = true;
+      setViewMode(requestedViewMode);
+    }
+  }, [requestedViewMode]);
   // Filament and feature colouring merge vertices differently, so they cannot
   // share one built mesh; the toolpath is rebuilt when crossing between them.
   const [layerRange, setLayerRange] = useState<[number, number]>([0, 0]);
+  useEffect(() => {
+    if (externalLayerRange && parsed && parsed.layers.length > 0) {
+      const maxIdx = Math.max(0, parsed.layers.length - 1);
+      const lo = Math.max(0, Math.min(maxIdx, externalLayerRange[0]));
+      const hi = Math.max(lo, Math.min(maxIdx, externalLayerRange[1]));
+      setLayerRange([lo, hi]);
+    }
+  }, [externalLayerRange, parsed]);
   // Hidden types, tracked separately per colour space: in filament view a
   // "type" is a filament slot, in every other view it is a feature.
   const [hiddenFeatures, setHiddenFeatures] = useState<ReadonlySet<number>>(new Set());
@@ -400,6 +446,13 @@ export function GcodeToolpathViewer({
     handleRef.current?.setTravelVisible(showTravel);
   }, [showTravel]);
 
+  const hasAdvisor = (advisorLayers?.length ?? 0) > 0;
+  const advisorByLayer = useMemo(() => {
+    const map = new Map<number, LayerThermalPoint>();
+    for (const lp of advisorLayers ?? []) map.set(lp.layer, lp);
+    return map;
+  }, [advisorLayers]);
+
   const colorResult = useMemo(() => {
     const data = segmentDataRef.current;
     if (!data || !parsed) return null;
@@ -413,16 +466,98 @@ export function GcodeToolpathViewer({
         const hex = filamentColors?.[slot] ?? filamentColors?.[0] ?? '#00ae42';
         colors[v * 4] = packColor(hex);
       }
-      return { color: colors, min: 0, max: 0, unit: '', cont: false };
+      return { color: colors, min: 0, max: 0, unit: '', cont: false, gradient: undefined as string | undefined };
+    }
+
+    if (viewMode === 'tqi') {
+      const colors = new Float32Array(data.nV * 4);
+      for (let v = 0; v < data.nV; v += 1) {
+        const lp = advisorByLayer.get(data.meta.vLayer[v]);
+        colors[v * 4] = packTqiColor(lp?.tqi ?? 0);
+      }
+      return {
+        color: colors,
+        min: -100,
+        max: 100,
+        unit: 'TQI',
+        cont: true,
+        gradient: 'linear-gradient(to right, #3b82f6 0%, #22c55e 50%, #eab308 75%, #ef4444 100%)',
+      };
+    }
+
+    if (viewMode === 'risk') {
+      const colors = new Float32Array(data.nV * 4);
+      const safePacked = packColor('#3f3f46');
+      const warnPacked = packColor('#f59e0b');
+      const hotPacked = packColor('#ef4444');
+      for (let v = 0; v < data.nV; v += 1) {
+        const lp = advisorByLayer.get(data.meta.vLayer[v]);
+        const flags = lp?.risk_flags ?? [];
+        if (flags.includes('overheating_curl') || flags.includes('volumetric_flow_ceiling')) {
+          colors[v * 4] = hotPacked;
+        } else if (flags.length > 0) {
+          colors[v * 4] = warnPacked;
+        } else {
+          colors[v * 4] = safePacked;
+        }
+      }
+      return { color: colors, min: 0, max: 0, unit: '', cont: false, gradient: undefined as string | undefined };
+    }
+
+    if (viewMode === 'speed' || viewMode === 'flow') {
+      // Compute per-(layer, featureType) average speed / peak flow from parsed G-code segments
+      const isSpeed = viewMode === 'speed';
+      const bucketVal = new Map<number, number>();
+      let minVal = Infinity;
+      let maxVal = -Infinity;
+      for (let li = 0; li < parsed.layers.length; li += 1) {
+        const layer = parsed.layers[li];
+        const sums = new Map<number, { total: number; count: number; peak: number }>();
+        for (let si = 0; si < layer.widths.length; si += 1) {
+          const fType = layer.paths[si * 8 + 3];
+          if (fType === ToolpathType.travel) continue;
+          const val = isSpeed ? (layer.speeds[si] ?? 0) : (layer.flows[si] ?? 0);
+          if (val <= 0) continue;
+          const prev = sums.get(fType) ?? { total: 0, count: 0, peak: 0 };
+          prev.total += val;
+          prev.count += 1;
+          if (val > prev.peak) prev.peak = val;
+          sums.set(fType, prev);
+        }
+        for (const [fType, agg] of sums.entries()) {
+          const metric = isSpeed ? agg.total / agg.count : agg.peak;
+          bucketVal.set(li * 32 + fType, metric);
+          if (metric < minVal) minVal = metric;
+          if (metric > maxVal) maxVal = metric;
+        }
+      }
+      if (!Number.isFinite(minVal)) {
+        minVal = 0;
+        maxVal = isSpeed ? 200 : 21;
+      }
+      const span = Math.max(maxVal - minVal, 1e-3);
+      const colors = new Float32Array(data.nV * 4);
+      for (let v = 0; v < data.nV; v += 1) {
+        const key = data.meta.vLayer[v] * 32 + data.meta.vType[v];
+        const metric = bucketVal.get(key) ?? minVal;
+        colors[v * 4] = packRampFraction((metric - minVal) / span);
+      }
+      return {
+        color: colors,
+        min: minVal,
+        max: maxVal,
+        unit: isSpeed ? 'mm/s' : 'mm³/s',
+        cont: true,
+        gradient: undefined as string | undefined,
+      };
     }
 
     // feature / height / width never consult the settings context, so an empty
-    // one is honest here; speed / fan / temp would not be, which is why they
-    // are not offered.
-    return computeColors(data, viewMode, {});
+    // one is honest here.
+    return { ...computeColors(data, viewMode, {}), gradient: undefined as string | undefined };
     // toolpathGeneration is a dependency so a rebuilt mesh gets recoloured.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewMode, parsed, filamentView, filamentColors, toolpathGeneration]);
+  }, [viewMode, parsed, filamentView, filamentColors, advisorByLayer, toolpathGeneration]);
 
   useEffect(() => {
     if (colorResult) handleRef.current?.setColors(colorResult.color);
@@ -481,8 +616,12 @@ export function GcodeToolpathViewer({
         <>
           {/* Colour mode + travel toggle */}
           <div className="absolute left-3 top-3 flex flex-col gap-2 rounded border border-bambu-dark-tertiary bg-bambu-dark/85 p-2">
-            <div className="flex overflow-hidden rounded border border-bambu-dark-tertiary">
-              {VIEW_MODES.filter((mode) => mode !== 'filament' || hasFilamentColors).map((mode) => (
+            <div className="flex flex-wrap overflow-hidden rounded border border-bambu-dark-tertiary">
+              {VIEW_MODES.filter(
+                (mode) =>
+                  (mode !== 'filament' || hasFilamentColors) &&
+                  ((mode !== 'tqi' && mode !== 'risk') || hasAdvisor),
+              ).map((mode) => (
                 <button
                   key={mode}
                   type="button"
@@ -494,7 +633,7 @@ export function GcodeToolpathViewer({
                     viewMode === mode ? 'bg-bambu-green text-white' : 'text-bambu-gray hover:text-white'
                   }`}
                 >
-                  {t(`gcodeViewer.view.${mode}`, mode)}
+                  {t(`gcodeViewer.view.${mode}`, mode === 'tqi' ? 'Thermal (TQI)' : mode)}
                 </button>
               ))}
             </div>
@@ -563,15 +702,30 @@ export function GcodeToolpathViewer({
                   );
                 })}
               </ul>
+            ) : viewMode === 'risk' ? (
+              <div className="flex flex-col gap-1 text-[0.7rem] text-bambu-gray">
+                <div className="flex items-center gap-1.5">
+                  <span className="inline-block h-2.5 w-2.5 rounded-sm bg-red-500" />
+                  <span>Overheating / Flow ceiling</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="inline-block h-2.5 w-2.5 rounded-sm bg-amber-500" />
+                  <span>Cold bond / Banding / Tall risk</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="inline-block h-2.5 w-2.5 rounded-sm bg-zinc-700" />
+                  <span>Nominal layers</span>
+                </div>
+              </div>
             ) : (
-              colorResult && (
-                // Continuous scale. The ramp is drawn from the renderer's own
-                // stops rather than an approximation, and the ends are labelled
-                // -- a bare gradient says nothing about what the colours mean.
+              colorResult &&
+              colorResult.cont && (
                 <div className="flex flex-col gap-1">
                   <div
                     className="h-2.5 w-full rounded-sm border border-white/10"
-                    style={{ background: `linear-gradient(to right, ${rampStops()})` }}
+                    style={{
+                      background: colorResult.gradient ?? `linear-gradient(to right, ${rampStops()})`,
+                    }}
                     aria-hidden
                   />
                   <div className="flex items-center justify-between text-[0.7rem] tabular-nums text-bambu-gray">

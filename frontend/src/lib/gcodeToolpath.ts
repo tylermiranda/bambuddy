@@ -95,7 +95,13 @@ export interface ToolpathLayer {
   z: number;
   paths: Float32Array;
   widths: number[];
+  /** Per-segment feedrate in mm/s (parallel to `widths`). */
+  speeds: number[];
+  /** Per-segment volumetric extrusion flow in mm³/s (parallel to `widths`). */
+  flows: number[];
 }
+
+const FILAMENT_AREA_MM2 = Math.PI * (1.75 / 2) ** 2;
 
 export interface ParsedToolpath {
   layers: ToolpathLayer[];
@@ -121,6 +127,8 @@ class PathBuffer {
   private data = new Float32Array(1024 * RECORD_STRIDE);
   private count = 0;
   readonly widths: number[] = [];
+  readonly speeds: number[] = [];
+  readonly flows: number[] = [];
 
   push(
     x0: number, y0: number, z0: number,
@@ -128,6 +136,8 @@ class PathBuffer {
     x1: number, y1: number, z1: number,
     width: number,
     tool: number,
+    speedMmS = 0,
+    flowMm3S = 0,
   ): void {
     if ((this.count + 1) * RECORD_STRIDE > this.data.length) {
       const grown = new Float32Array(this.data.length * 2);
@@ -148,6 +158,8 @@ class PathBuffer {
     this.data[o + 7] = tool;
     this.count += 1;
     this.widths.push(width);
+    this.speeds.push(speedMmS);
+    this.flows.push(flowMm3S);
   }
 
   get length(): number {
@@ -196,6 +208,7 @@ export function parseGcodeToolpath(gcode: string): ParsedToolpath {
   let y = 0;
   let z = 0;
   let e = 0;
+  let feedrateMmMin = 3000;
   let relativeExtrusion = false;
   let feature: number = ToolpathType.wall;
   let width = 0;
@@ -229,7 +242,13 @@ export function parseGcodeToolpath(gcode: string): ParsedToolpath {
 
   const flushLayer = () => {
     if (current.length === 0) return;
-    layers.push({ z: currentZ, paths: current.toFloat32Array(), widths: current.widths });
+    layers.push({
+      z: currentZ,
+      paths: current.toFloat32Array(),
+      widths: current.widths,
+      speeds: current.speeds,
+      flows: current.flows,
+    });
     current = new PathBuffer();
     layerHasExtrusion = false;
     if (pendingZ !== null) {
@@ -242,7 +261,8 @@ export function parseGcodeToolpath(gcode: string): ParsedToolpath {
    * Record one straight run from the current position, updating bounds. Shared
    * by linear moves and by each chord an arc is flattened into.
    */
-  const emit = (nx: number, ny: number, nz: number, extruding: boolean) => {
+  const emit = (nx: number, ny: number, nz: number, extruding: boolean, segExtrudedMm = 0) => {
+    const speedMmS = feedrateMmMin / 60;
     if (extruding) {
       if (!sawLayerMarker && layerHasExtrusion && nz !== currentZ) flushLayer();
       if (!layerHasExtrusion) {
@@ -257,7 +277,10 @@ export function parseGcodeToolpath(gcode: string): ParsedToolpath {
         return;
       }
 
-      current.push(x, y, z, feature, nx, ny, nz, width, tool);
+      const len = Math.hypot(nx - x, ny - y, nz - z);
+      const dt = len > 0 ? len / Math.max(speedMmS, 1) : 0;
+      const flowMm3S = dt > 0 && segExtrudedMm > 0 ? (segExtrudedMm * FILAMENT_AREA_MM2) / dt : 0;
+      current.push(x, y, z, feature, nx, ny, nz, width, tool, speedMmS, flowMm3S);
       segmentCount += 1;
       if (nx < minX) minX = nx;
       if (ny < minY) minY = ny;
@@ -266,7 +289,7 @@ export function parseGcodeToolpath(gcode: string): ParsedToolpath {
       if (ny > maxY) maxY = ny;
       if (nz > maxZ) maxZ = nz;
     } else if (hasPosition) {
-      current.push(x, y, z, ToolpathType.travel, nx, ny, nz, 0, tool);
+      current.push(x, y, z, ToolpathType.travel, nx, ny, nz, 0, tool, speedMmS, 0);
       travelCount += 1;
     }
     x = nx; y = ny; z = nz;
@@ -337,6 +360,8 @@ export function parseGcodeToolpath(gcode: string): ParsedToolpath {
     if (isArc && !/^G[23](\s|$)/.test(line)) continue;
     if (isLinear && !/^G[01](\s|$)/.test(line)) continue;
 
+    const fVal = readAxis(line, 'F');
+    if (fVal !== undefined && fVal > 0) feedrateMmMin = fVal;
     const nx = readAxis(line, 'X') ?? x;
     const ny = readAxis(line, 'Y') ?? y;
     const nz = readAxis(line, 'Z') ?? z;
@@ -385,6 +410,7 @@ export function parseGcodeToolpath(gcode: string): ParsedToolpath {
         const maxStep = 2 * Math.acos(Math.max(-1, Math.min(1, 1 - ARC_TOLERANCE_MM / radius)));
         const steps = Math.max(1, Math.min(ARC_MAX_CHORDS, Math.ceil(Math.abs(sweep) / Math.max(maxStep, 1e-3))));
 
+        const chordExtruded = extruding ? extruded / steps : 0;
         for (let step = 1; step <= steps; step += 1) {
           const fraction = step / steps;
           const angle = startAngle + sweep * fraction;
@@ -393,6 +419,7 @@ export function parseGcodeToolpath(gcode: string): ParsedToolpath {
             cy + radius * Math.sin(angle),
             z + (nz - z) * fraction,
             extruding,
+            chordExtruded,
           );
         }
         continue;
@@ -401,7 +428,7 @@ export function parseGcodeToolpath(gcode: string): ParsedToolpath {
       // move rather than dropping the geometry.
     }
 
-    if (nx !== x || ny !== y || nz !== z) emit(nx, ny, nz, extruding);
+    if (nx !== x || ny !== y || nz !== z) emit(nx, ny, nz, extruding, extruding ? extruded : 0);
   }
 
   flushLayer();
@@ -456,16 +483,25 @@ export function filterLayersByType(layers: ToolpathLayer[], hidden: ReadonlySet<
     for (let i = 0; i < layer.paths.length; i += RECORD_STRIDE) {
       const type = layer.paths[i + 3];
       if (hidden.has(type)) continue;
+      const segIdx = i / RECORD_STRIDE;
       kept.push(
         layer.paths[i], layer.paths[i + 1], layer.paths[i + 2], type,
         layer.paths[i + 4], layer.paths[i + 5], layer.paths[i + 6],
-        layer.widths[i / RECORD_STRIDE] ?? 0,
+        layer.widths[segIdx] ?? 0,
         layer.paths[i + 7],
+        layer.speeds[segIdx] ?? 0,
+        layer.flows[segIdx] ?? 0,
       );
     }
     // A layer emptied by the filter is still a layer: dropping it would
     // renumber every layer above it and make the range slider lie.
-    out.push({ ...layer, paths: kept.toFloat32Array(), widths: kept.widths });
+    out.push({
+      ...layer,
+      paths: kept.toFloat32Array(),
+      widths: kept.widths,
+      speeds: kept.speeds,
+      flows: kept.flows,
+    });
   }
   return out;
 }

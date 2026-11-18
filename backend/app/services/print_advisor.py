@@ -1,0 +1,1101 @@
+"""Physics-based thermal simulation, failure-risk diagnostics, and geometry-safe
+G-code speed/cooling optimization ("Assess & Enhance") for Bambu 3MF plates.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import io
+import json
+import logging
+import math
+import re
+import zipfile
+from dataclasses import dataclass
+from pathlib import Path
+
+import numpy as np
+
+from backend.app.schemas.print_advisor import (
+    AdvisorFinding,
+    AdvisorPriority,
+    AssessResponse,
+    LayerThermalPoint,
+    PrintAdvisorBadgeSummary,
+)
+from backend.app.services.slice_output_check import start_gcode_is_missing
+from backend.app.utils.threemf_tools import default_plate_gcode_name, select_plate_gcode_name
+
+logger = logging.getLogger(__name__)
+
+FILAMENT_AREA_MM2 = math.pi * (1.75 / 2.0) ** 2  # ~2.40528 mm²
+GRID_SIZE = 16
+_PROJECT_SETTINGS_PATH = "Metadata/project_settings.config"
+_SLICE_INFO_PATH = "Metadata/slice_info.config"
+
+
+@dataclass(frozen=True)
+class MaterialPhysics:
+    name: str
+    t_nozzle: float
+    t_amb: float
+    t_bond_min: float
+    t_ideal: float
+    t_sag_tg: float
+    max_flow_mm3s: float
+    tau_base_s: float
+    hygroscopic: bool
+    max_fan_pwm: int
+
+
+MATERIAL_PROFILES: dict[str, MaterialPhysics] = {
+    "PLA": MaterialPhysics("PLA", 220.0, 30.0, 38.0, 48.0, 60.0, 21.0, 4.5, False, 255),
+    "PLA-SILK": MaterialPhysics("PLA-SILK", 225.0, 30.0, 40.0, 50.0, 58.0, 14.0, 5.0, False, 255),
+    "PETG": MaterialPhysics("PETG", 250.0, 35.0, 52.0, 66.0, 78.0, 13.0, 5.5, True, 204),
+    "TPU": MaterialPhysics("TPU", 230.0, 30.0, 42.0, 55.0, 72.0, 3.8, 6.0, True, 178),
+    "ABS": MaterialPhysics("ABS", 260.0, 45.0, 72.0, 88.0, 102.0, 16.0, 6.0, False, 102),
+    "ASA": MaterialPhysics("ASA", 260.0, 45.0, 72.0, 88.0, 102.0, 16.0, 6.0, False, 102),
+    "PA": MaterialPhysics("PA", 280.0, 45.0, 68.0, 82.0, 98.0, 12.0, 6.0, True, 76),
+    "PC": MaterialPhysics("PC", 280.0, 50.0, 95.0, 115.0, 135.0, 14.0, 6.5, True, 76),
+}
+
+_PLATE_NUM_RE = re.compile(r"plate_(\d+)\.gcode$", re.IGNORECASE)
+_F_PARAM_RE = re.compile(r"\bF([0-9]*\.?[0-9]+)", re.IGNORECASE)
+_M73_R_RE = re.compile(r"(\bM73\b[^\n;]*?\bR)(\d+)", re.IGNORECASE)
+_PREDICTION_RE = re.compile(r'(<metadata\s+key="prediction"\s+value=")(\d+)(")')
+
+
+@dataclass
+class ResolvedProfile:
+    physics: MaterialPhysics
+    default_accel_mms2: float
+
+
+def _first_float(val: object) -> float | None:
+    if isinstance(val, list):
+        val = val[0] if val else None
+    if val is None:
+        return None
+    try:
+        s = str(val).strip().rstrip("%")
+        return float(s) if s else None
+    except ValueError:
+        return None
+
+
+def _first_str(val: object) -> str:
+    if isinstance(val, list):
+        return str(val[0]).strip() if val else ""
+    return str(val).strip() if val is not None else ""
+
+
+def _normalize_material_key(raw_type: str, raw_preset_id: str = "") -> str:
+    upper = f"{raw_type} {raw_preset_id}".upper()
+    if "SILK" in upper:
+        return "PLA-SILK"
+    for key in ("PETG", "TPU", "ASA", "ABS", "PC", "PA"):
+        if key in upper:
+            return key
+    if "NYLON" in upper:
+        return "PA"
+    return "PLA"
+
+
+def _resolve_profile_from_settings(settings_dict: dict | None, gcode_head: str) -> ResolvedProfile:
+    raw_type = ""
+    raw_preset = ""
+    nozzle_override: float | None = None
+    flow_override: float | None = None
+    accel = 6000.0
+
+    if isinstance(settings_dict, dict):
+        raw_type = _first_str(settings_dict.get("filament_type"))
+        raw_preset = _first_str(settings_dict.get("filament_settings_id"))
+        nozzle_override = _first_float(settings_dict.get("nozzle_temperature"))
+        flow_override = _first_float(settings_dict.get("filament_max_volumetric_speed"))
+        parsed_accel = _first_float(settings_dict.get("default_acceleration"))
+        if parsed_accel and parsed_accel > 100.0:
+            accel = parsed_accel
+
+    for line in gcode_head.splitlines()[:250]:
+        if not line.startswith(";"):
+            continue
+        body = line[1:].strip()
+        if "=" not in body:
+            continue
+        k, v = [p.strip() for p in body.split("=", 1)]
+        kl = k.lower()
+        first_v = v.split(";")[0].split(",")[0].strip()
+        if kl == "filament_type" and not raw_type:
+            raw_type = first_v
+        elif kl == "filament_settings_id" and not raw_preset:
+            raw_preset = first_v
+        elif kl == "nozzle_temperature" and nozzle_override is None:
+            nozzle_override = _first_float(first_v)
+        elif kl == "filament_max_volumetric_speed" and flow_override is None:
+            flow_override = _first_float(first_v)
+        elif kl == "default_acceleration":
+            pa = _first_float(first_v)
+            if pa and pa > 100.0:
+                accel = pa
+
+    mat_key = _normalize_material_key(raw_type, raw_preset)
+    base = MATERIAL_PROFILES[mat_key]
+    physics = MaterialPhysics(
+        name=base.name,
+        t_nozzle=nozzle_override if (nozzle_override and nozzle_override >= 170.0) else base.t_nozzle,
+        t_amb=base.t_amb,
+        t_bond_min=base.t_bond_min,
+        t_ideal=base.t_ideal,
+        t_sag_tg=base.t_sag_tg,
+        max_flow_mm3s=flow_override if (flow_override and flow_override > 0.5) else base.max_flow_mm3s,
+        tau_base_s=base.tau_base_s,
+        hygroscopic=base.hygroscopic,
+        max_fan_pwm=base.max_fan_pwm,
+    )
+    return ResolvedProfile(physics=physics, default_accel_mms2=accel)
+
+
+def _read_axis(cmd_part: str, axis: str) -> float | None:
+    idx = cmd_part.find(axis)
+    if idx < 0:
+        return None
+    start = idx + 1
+    end = start
+    n = len(cmd_part)
+    while end < n and (cmd_part[end].isdigit() or cmd_part[end] in "+-."):
+        end += 1
+    if end == start:
+        return None
+    try:
+        return float(cmd_part[start:end])
+    except ValueError:
+        return None
+
+
+def _move_duration_s(dist_mm: float, speed_mms: float, accel_mms2: float) -> float:
+    if dist_mm <= 1e-6:
+        return 0.0
+    v = max(speed_mms, 1.0)
+    a = max(accel_mms2, 200.0)
+    d_crit = (v * v) / a
+    if dist_mm < d_crit:
+        t_kin = 2.0 * math.sqrt(dist_mm / a)
+    else:
+        t_kin = (dist_mm / v) + (v / a)
+    return max(dist_mm / v, t_kin)
+
+
+def _compute_tqi(t_sub: float, p: MaterialPhysics) -> float:
+    if t_sub >= p.t_ideal:
+        span = max(p.t_sag_tg - p.t_ideal, 4.0)
+        raw = 65.0 * ((t_sub - p.t_ideal) / span)
+        return float(min(100.0, raw))
+    span = max(p.t_ideal - p.t_bond_min, 4.0)
+    raw = -65.0 * ((p.t_ideal - t_sub) / span)
+    return float(max(-100.0, raw))
+
+
+def _extract_plate_from_path(file_path: Path, plate_id: int | None) -> tuple[int, str, dict | None, str | None]:
+    """Return ``(resolved_plate_id, gcode_text, project_settings, target_zip_member)``."""
+    suffix = file_path.name.lower()
+    is_zip = zipfile.is_zipfile(file_path) or suffix.endswith(".3mf")
+    if is_zip:
+        with zipfile.ZipFile(file_path, "r") as zf:
+            names = zf.namelist()
+            gcode_files = [n for n in names if n.endswith(".gcode")]
+            if not gcode_files:
+                raise ValueError("No sliced G-code found in 3MF file")
+            if plate_id is not None:
+                selected = select_plate_gcode_name(gcode_files, plate_id)
+                if selected is None:
+                    raise FileNotFoundError(f"Plate {plate_id} not found in 3MF file")
+            else:
+                selected = default_plate_gcode_name(gcode_files) or gcode_files[0]
+            m = _PLATE_NUM_RE.search(selected)
+            resolved_plate = int(m.group(1)) if m else (plate_id or 1)
+            gcode_text = zf.read(selected).decode("utf-8", errors="ignore")
+            settings_dict: dict | None = None
+            if _PROJECT_SETTINGS_PATH in names:
+                try:
+                    loaded = json.loads(zf.read(_PROJECT_SETTINGS_PATH).decode("utf-8", errors="ignore"))
+                    if isinstance(loaded, dict):
+                        settings_dict = loaded
+                except json.JSONDecodeError:
+                    settings_dict = None
+            return resolved_plate, gcode_text, settings_dict, selected
+
+    if plate_id is not None and plate_id != 1:
+        raise FileNotFoundError(f"Plate {plate_id} not found in plain G-code file")
+    return 1, file_path.read_text(encoding="utf-8", errors="ignore"), None, None
+
+
+def assess_gcode_text(
+    gcode_text: str,
+    *,
+    plate_id: int = 1,
+    settings_dict: dict | None = None,
+    ams_humidity_pct: float | None = None,
+) -> AssessResponse:
+    """Run single-pass kinematic, 16x16 spatial thermal TQI, and risk analysis."""
+    resolved = _resolve_profile_from_settings(settings_dict, gcode_text[:16384])
+    prof = resolved.physics
+    accel = resolved.default_accel_mms2
+
+    has_start_end_marker = "; MACHINE_START_GCODE_END" in gcode_text
+
+    # Quick first pass for XY bounding box of extruding print moves so our 16x16
+    # grid maps tightly to the printed part rather than the whole 256x256 bed.
+    in_print = not has_start_end_marker
+    rel_e = True
+    x = y = z = e = 0.0
+    has_pos = False
+    min_x = min_y = float("inf")
+    max_x = max_y = float("-inf")
+    max_z = 0.0
+    l0_min_x = l0_min_y = float("inf")
+    l0_max_x = l0_max_y = float("-inf")
+    saw_brim_or_skirt = False
+    cur_feature = "wall"
+    cur_layer_idx = 0
+    saw_layer_marker = False
+
+    lines = gcode_text.splitlines()
+
+    for raw in lines:
+        s = raw.strip()
+        if not s:
+            continue
+        if s[0] == ";":
+            body = s[1:].strip()
+            bu = body.upper()
+            if bu.startswith("MACHINE_START_GCODE_END"):
+                in_print = True
+            elif bu.startswith("EXECUTABLE_BLOCK_END"):
+                break
+            elif bu in ("CHANGE_LAYER", "LAYER_CHANGE") or bu.startswith(("CHANGE_LAYER ", "LAYER_CHANGE ")):
+                if saw_layer_marker:
+                    cur_layer_idx += 1
+                saw_layer_marker = True
+            elif ":" in body:
+                k, v = body.split(":", 1)
+                ku = k.strip().upper()
+                vl = v.strip().lower()
+                if ku in ("FEATURE", "TYPE"):
+                    cur_feature = vl
+                    if "skirt" in vl or "brim" in vl or "raft" in vl:
+                        saw_brim_or_skirt = True
+            continue
+
+        cmd_part = s.split(";", 1)[0].strip()
+        if not cmd_part:
+            continue
+        c0 = cmd_part[:4].upper()
+        if c0.startswith("M83"):
+            rel_e = True
+            continue
+        if c0.startswith("M82"):
+            rel_e = False
+            continue
+        if c0.startswith("G92"):
+            re_val = _read_axis(cmd_part, "E")
+            if re_val is not None:
+                e = re_val
+            continue
+        if not (cmd_part.startswith(("G0 ", "G1 ", "G2 ", "G3 ", "G0\t", "G1\t"))):
+            continue
+
+        nx = _read_axis(cmd_part, "X")
+        ny = _read_axis(cmd_part, "Y")
+        nz = _read_axis(cmd_part, "Z")
+        re_val = _read_axis(cmd_part, "E")
+        tx = x if nx is None else nx
+        ty = y if ny is None else ny
+        tz = z if nz is None else nz
+        de = 0.0
+        if re_val is not None:
+            de = re_val if rel_e else (re_val - e)
+            e = re_val
+
+        if in_print and de > 0.0 and has_pos and (tx != x or ty != y):
+            if tx < min_x:
+                min_x = tx
+            if ty < min_y:
+                min_y = ty
+            if tx > max_x:
+                max_x = tx
+            if ty > max_y:
+                max_y = ty
+            if tz > max_z:
+                max_z = tz
+            if cur_layer_idx == 0 and tz <= 0.6:
+                l0_min_x = min(l0_min_x, x, tx)
+                l0_max_x = max(l0_max_x, x, tx)
+                l0_min_y = min(l0_min_y, y, ty)
+                l0_max_y = max(l0_max_y, y, ty)
+
+        x, y, z = tx, ty, tz
+        has_pos = True
+
+    if not math.isfinite(min_x) or not math.isfinite(max_x):
+        min_x, max_x, min_y, max_y = 0.0, 256.0, 0.0, 256.0
+    span_x = max(max_x - min_x, 1.0)
+    span_y = max(max_y - min_y, 1.0)
+
+    # Pass 2: Full kinematic + 16x16 XY-cell thermal simulation
+    cell_last_t = np.full((GRID_SIZE, GRID_SIZE), -1e9, dtype=np.float64)
+
+    in_print = not has_start_end_marker
+    rel_e = True
+    x = y = z = e = 0.0
+    has_pos = False
+    feed_mm_min = 3000.0
+    fan_pwm = 0
+    line_width = 0.42
+    cur_feature = "wall"
+    t_now = 0.0
+
+    saw_explicit_layer = False
+    layer_idx = 0
+    layer_z = 0.2
+    prev_layer_z = 0.0
+    layer_has_extrusion = False
+    layer_start_t = 0.0
+    layer_max_flow = 0.0
+    layer_ow_speed_weighted = 0.0
+    layer_ow_dist = 0.0
+    layer_fan_sum = 0.0
+    layer_ext_time = 0.0
+    layer_cell_tqis: list[float] = []
+    layer_overhang_low_fan = False
+    layer_infill_time = 0.0
+    upper_fast_moves = False
+
+    layers_out: list[LayerThermalPoint] = []
+    fast_savings_s = 0.0
+
+    def flush_layer() -> None:
+        nonlocal layer_idx, prev_layer_z, layer_has_extrusion, layer_start_t
+        nonlocal layer_max_flow, layer_ow_speed_weighted, layer_ow_dist
+        nonlocal layer_fan_sum, layer_ext_time, layer_cell_tqis
+        nonlocal layer_overhang_low_fan, layer_infill_time, fast_savings_s
+
+        if not layer_has_extrusion:
+            layer_start_t = t_now
+            return
+
+        dur = max(t_now - layer_start_t, 0.01)
+        mean_fan_pct = int(round((layer_fan_sum / max(layer_ext_time, 1e-4)) * 100.0 / 255.0))
+        mean_fan_pct = max(0, min(100, mean_fan_pct))
+
+        if layer_idx == 0 or not layer_cell_tqis:
+            layer_tqi = 0.0
+        else:
+            arr = np.asarray(layer_cell_tqis, dtype=np.float64)
+            p90_pos = float(np.percentile(arr, 90))
+            p10_neg = float(np.percentile(arr, 10))
+            layer_tqi = p90_pos if abs(p90_pos) >= abs(p10_neg) else p10_neg
+
+        flags: list[str] = []
+        if layer_tqi > 45.0 or layer_overhang_low_fan:
+            flags.append("overheating_curl")
+        if layer_idx > 2 and layer_tqi < -50.0:
+            flags.append("cold_delamination")
+        if layer_max_flow > 0.92 * prof.max_flow_mm3s:
+            flags.append("volumetric_flow_ceiling")
+
+        ow_speed = (layer_ow_speed_weighted / layer_ow_dist) if layer_ow_dist > 0.5 else None
+
+        # Estimate safe time savings on cool/safe layers where infill/inner walls can accelerate
+        if layer_tqi < -10.0 and layer_max_flow < 0.80 * prof.max_flow_mm3s:
+            fast_savings_s += layer_infill_time * 0.22
+
+        layers_out.append(
+            LayerThermalPoint(
+                layer=layer_idx,
+                z=round(layer_z, 3),
+                duration_s=round(dur, 2),
+                tqi=round(float(max(-100.0, min(100.0, layer_tqi))), 1),
+                max_flow_mm3s=round(layer_max_flow, 2),
+                outer_wall_speed_mms=round(ow_speed, 1) if ow_speed is not None else None,
+                fan_pct=mean_fan_pct,
+                risk_flags=flags,
+            )
+        )
+
+        prev_layer_z = layer_z
+        layer_idx += 1
+        layer_has_extrusion = False
+        layer_start_t = t_now
+        layer_max_flow = 0.0
+        layer_ow_speed_weighted = 0.0
+        layer_ow_dist = 0.0
+        layer_fan_sum = 0.0
+        layer_ext_time = 0.0
+        layer_cell_tqis = []
+        layer_overhang_low_fan = False
+        layer_infill_time = 0.0
+
+    for raw in lines:
+        s = raw.strip()
+        if not s:
+            continue
+        if s[0] == ";":
+            body = s[1:].strip()
+            bu = body.upper()
+            if bu.startswith("MACHINE_START_GCODE_END"):
+                in_print = True
+                layer_start_t = t_now
+            elif bu.startswith("EXECUTABLE_BLOCK_END"):
+                break
+            elif bu in ("CHANGE_LAYER", "LAYER_CHANGE") or bu.startswith(("CHANGE_LAYER ", "LAYER_CHANGE ")):
+                saw_explicit_layer = True
+                if in_print:
+                    flush_layer()
+            elif ":" in body:
+                k, v = body.split(":", 1)
+                ku = k.strip().upper()
+                vs = v.strip()
+                if ku in ("FEATURE", "TYPE"):
+                    cur_feature = vs.lower()
+                elif ku in ("LINE_WIDTH", "WIDTH"):
+                    pw = _first_float(vs)
+                    if pw and pw > 0.05:
+                        line_width = pw
+                elif ku in ("Z_HEIGHT", "Z"):
+                    pz = _first_float(vs)
+                    if pz is not None and pz >= 0:
+                        layer_z = pz
+            continue
+
+        cmd_part = s.split(";", 1)[0].strip()
+        if not cmd_part:
+            continue
+        parts = cmd_part.split()
+        op = parts[0].upper()
+
+        if op == "M83":
+            rel_e = True
+            continue
+        if op == "M82":
+            rel_e = False
+            continue
+        if op == "G92":
+            re_val = _read_axis(cmd_part, "E")
+            if re_val is not None:
+                e = re_val
+            continue
+        if op == "M107":
+            fan_pwm = 0
+            continue
+        if op == "M106":
+            p_idx = _read_axis(cmd_part, "P")
+            s_val = _read_axis(cmd_part, "S")
+            # Bambu uses M106 P1 S<pwm> for part cooling fan; generic uses M106 S<pwm> or P0.
+            if s_val is not None and (p_idx is None or int(p_idx) in (0, 1)):
+                fan_pwm = max(0, min(255, int(round(s_val))))
+            continue
+
+        if op not in ("G0", "G1", "G2", "G3"):
+            continue
+
+        f_val = _read_axis(cmd_part, "F")
+        if f_val is not None and f_val > 0.0:
+            feed_mm_min = f_val
+
+        nx = _read_axis(cmd_part, "X")
+        ny = _read_axis(cmd_part, "Y")
+        nz = _read_axis(cmd_part, "Z")
+        re_val = _read_axis(cmd_part, "E")
+
+        tx = x if nx is None else nx
+        ty = y if ny is None else ny
+        tz = z if nz is None else nz
+        de = 0.0
+        if re_val is not None:
+            de = re_val if rel_e else (re_val - e)
+            e = re_val
+
+        if not has_pos:
+            x, y, z = tx, ty, tz
+            has_pos = True
+            continue
+
+        dist = math.sqrt((tx - x) ** 2 + (ty - y) ** 2 + (tz - z) ** 2)
+        speed_mms = feed_mm_min / 60.0
+        dt = _move_duration_s(dist, speed_mms, accel)
+
+        if in_print:
+            if de > 0.0 and (tx != x or ty != y):
+                if not saw_explicit_layer and layer_has_extrusion and abs(tz - layer_z) > 0.04:
+                    flush_layer()
+                if not layer_has_extrusion:
+                    layer_z = tz if tz > 0 else layer_z
+                layer_has_extrusion = True
+
+                layer_h = max(0.06, min(0.60, layer_z - prev_layer_z if layer_z > prev_layer_z else 0.20))
+                flow = (de * FILAMENT_AREA_MM2) / max(dt, 1e-4)
+                if flow > layer_max_flow:
+                    layer_max_flow = flow
+
+                fan_pct_now = (fan_pwm / 255.0) * 100.0
+                layer_fan_sum += fan_pwm * dt
+                layer_ext_time += dt
+
+                if "outer wall" in cur_feature or cur_feature == "external perimeter":
+                    layer_ow_speed_weighted += speed_mms * dist
+                    layer_ow_dist += dist
+                elif "infill" in cur_feature or "inner wall" in cur_feature or cur_feature == "perimeter":
+                    layer_infill_time += dt
+
+                if ("overhang" in cur_feature or "bridge" in cur_feature) and prof.name in ("PLA", "PLA-SILK", "PETG"):
+                    if fan_pct_now < 60.0 and layer_idx >= 2:
+                        layer_overhang_low_fan = True
+
+                if max_z > 0 and tz > 0.5 * max_z and speed_mms > 200.0:
+                    upper_fast_moves = True
+
+                # Map midpoint onto 16x16 XY grid
+                mx = 0.5 * (x + tx)
+                my = 0.5 * (y + ty)
+                cx = max(0, min(GRID_SIZE - 1, int(((mx - min_x) / span_x) * (GRID_SIZE - 1))))
+                cy = max(0, min(GRID_SIZE - 1, int(((my - min_y) / span_y) * (GRID_SIZE - 1))))
+                last_visit = float(cell_last_t[cx, cy])
+                if layer_idx > 0 and last_visit > -1e8:
+                    dt_rev = max(0.05, min(300.0, t_now - last_visit))
+                    tau = (
+                        prof.tau_base_s
+                        * ((line_width * layer_h) / (0.42 * 0.20))
+                        * (1.0 / (0.35 + 0.65 * (fan_pct_now / 100.0)))
+                    )
+                    t_sub = prof.t_amb + (prof.t_nozzle - prof.t_amb) * math.exp(-dt_rev / max(tau, 0.25))
+                    layer_cell_tqis.append(_compute_tqi(t_sub, prof))
+                cell_last_t[cx, cy] = t_now + dt
+            elif max_z > 0 and tz > 0.5 * max_z and speed_mms > 200.0 and dist > 5.0:
+                upper_fast_moves = True
+
+            t_now += dt
+
+        x, y, z = tx, ty, tz
+
+    if in_print and layer_has_extrusion:
+        flush_layer()
+
+    total_layers = len(layers_out)
+    tqi_vals = [lp.tqi for lp in layers_out]
+    tqi_mean = round(float(np.mean(tqi_vals)), 1) if tqi_vals else 0.0
+    hot_layers = [lp for lp in layers_out if "overheating_curl" in lp.risk_flags]
+    cold_layers = [lp for lp in layers_out if "cold_delamination" in lp.risk_flags]
+    flow_layers = [lp for lp in layers_out if "volumetric_flow_ceiling" in lp.risk_flags]
+    max_flow_seen = max((lp.max_flow_mm3s for lp in layers_out), default=0.0)
+
+    # Outer-wall gloss banding check
+    gloss_jump_layers: list[int] = []
+    prev_ow: float | None = None
+    for lp in layers_out:
+        if lp.outer_wall_speed_mms is not None and lp.layer >= 2:
+            if prev_ow is not None:
+                hi = max(prev_ow, lp.outer_wall_speed_mms)
+                lo = max(min(prev_ow, lp.outer_wall_speed_mms), 1.0)
+                if (hi / lo) > 1.35:
+                    gloss_jump_layers.append(lp.layer)
+                    if "outer_wall_gloss_banding" not in lp.risk_flags:
+                        lp.risk_flags.append("outer_wall_gloss_banding")
+            prev_ow = lp.outer_wall_speed_mms
+
+    # Slenderness / bed detachment check
+    l0_span_x = (l0_max_x - l0_min_x) if math.isfinite(l0_min_x) else span_x
+    l0_span_y = (l0_max_y - l0_min_y) if math.isfinite(l0_min_y) else span_y
+    min_base = max(min(l0_span_x, l0_span_y), 1.0)
+    slenderness_ratio = max_z / min_base
+
+    findings: list[AdvisorFinding] = []
+    recs: dict[str, str | float | int] = {}
+
+    if hot_layers:
+        worst_tqi = max(lp.tqi for lp in hot_layers)
+        sev = "critical" if worst_tqi > 75.0 else "warning"
+        findings.append(
+            AdvisorFinding(
+                code="overheating_curl",
+                severity=sev,
+                title=f"Overheating / curling risk on {len(hot_layers)} layer(s)",
+                detail=(
+                    f"Local plastic stays above softening threshold (peak TQI +{worst_tqi:.0f}) "
+                    f"between layers {hot_layers[0].layer + 1}–{hot_layers[-1].layer + 1}, risking sag or curled overhangs."
+                ),
+                layer_start=hot_layers[0].layer,
+                layer_end=hot_layers[-1].layer,
+                slicer_fix="Increase minimum layer time (slow_down_layer_time) or run Print Advisor Enhance (Balanced).",
+            )
+        )
+        recs["slow_down_layer_time"] = 8
+        recs["overhang_fan_speed"] = "100%"
+
+    if cold_layers:
+        worst_cold = min(lp.tqi for lp in cold_layers)
+        findings.append(
+            AdvisorFinding(
+                code="cold_delamination",
+                severity="warning",
+                title=f"Overcooling / weak layer bond on {len(cold_layers)} layer(s)",
+                detail=(
+                    f"Long layer revisit times cool the substrate below optimal bonding window "
+                    f"(min TQI {worst_cold:.0f}), reducing Z-axis tensile strength."
+                ),
+                layer_start=cold_layers[0].layer,
+                layer_end=cold_layers[-1].layer,
+                slicer_fix="Lower max part-cooling fan speed by 15–25% or run Enhance (Strong / Balanced).",
+            )
+        )
+        recs["fan_max_speed"] = "60%" if prof.name == "PETG" else "80%"
+
+    if flow_layers:
+        sev = "critical" if max_flow_seen > 1.05 * prof.max_flow_mm3s else "warning"
+        findings.append(
+            AdvisorFinding(
+                code="volumetric_flow_ceiling",
+                severity=sev,
+                title=f"Hotend volumetric flow near/above limit ({max_flow_seen:.1f} / {prof.max_flow_mm3s:.1f} mm³/s)",
+                detail=(
+                    f"{len(flow_layers)} layer(s) push extrusion beyond 92% of {prof.name}'s melt ceiling, "
+                    "risking extruder skipping, matte under-extrusion, or weak infill."
+                ),
+                layer_start=flow_layers[0].layer,
+                layer_end=flow_layers[-1].layer,
+                slicer_fix=f"Cap filament_max_volumetric_speed at {round(prof.max_flow_mm3s * 0.88, 1)} mm³/s.",
+            )
+        )
+        recs["filament_max_volumetric_speed"] = round(prof.max_flow_mm3s * 0.88, 1)
+
+    if slenderness_ratio > 6.0 and not saw_brim_or_skirt and (upper_fast_moves or max_z > 60.0):
+        top_start = max(0, int(total_layers * 0.6))
+        for lp in layers_out[top_start:]:
+            if "slenderness_detachment" not in lp.risk_flags:
+                lp.risk_flags.append("slenderness_detachment")
+        findings.append(
+            AdvisorFinding(
+                code="slenderness_detachment",
+                severity="warning",
+                title=f"Tall-part knock-over risk ({slenderness_ratio:.1f}:1 height-to-base ratio without brim)",
+                detail=(
+                    f"Model is {max_z:.1f} mm tall on a {min_base:.1f} mm narrow base with no brim detected. "
+                    "High-leverage upper moves risk detaching the print from the plate."
+                ),
+                layer_start=top_start,
+                layer_end=max(0, total_layers - 1),
+                slicer_fix="Enable a 5–8 mm Outer Brim (brim_type = outer_only) and Z-hop.",
+            )
+        )
+        recs["brim_type"] = "outer_only"
+        recs["brim_width"] = 6
+
+    if len(gloss_jump_layers) >= 5:
+        sev = "warning" if prof.name in ("PLA-SILK", "PETG") else "info"
+        findings.append(
+            AdvisorFinding(
+                code="outer_wall_gloss_banding",
+                severity=sev,
+                title=f"Outer-wall gloss/matte speed banding ({len(gloss_jump_layers)} sharp transitions)",
+                detail=(
+                    "Outer-wall speed shifts by >35% across adjacent layers, which creates visible "
+                    "shiny-to-matte horizontal bands (especially on Silk PLA and PETG)."
+                ),
+                layer_start=gloss_jump_layers[0],
+                layer_end=gloss_jump_layers[-1],
+                slicer_fix="Enable 'Don't slow down outer walls' or run Print Advisor Enhance (Uniform Gloss).",
+            )
+        )
+        recs["slow_down_for_layer_cooling_outer_wall"] = "false"
+
+    if ams_humidity_pct is not None and ams_humidity_pct > 35.0 and prof.hygroscopic:
+        findings.append(
+            AdvisorFinding(
+                code="hygroscopic_moisture",
+                severity="warning",
+                title=f"Elevated AMS humidity ({ams_humidity_pct:.0f}%) for hygroscopic {prof.name}",
+                detail=(
+                    f"{prof.name} absorbs moisture rapidly above 35% RH, causing stringing, "
+                    "popping steam bubbles, and weaker layer adhesion."
+                ),
+                slicer_fix="Run AMS filament drying before starting this print.",
+            )
+        )
+
+    # Health score calculation
+    crit_count = sum(1 for f in findings if f.severity == "critical")
+    warn_count = sum(1 for f in findings if f.severity == "warning")
+    info_count = sum(1 for f in findings if f.severity == "info")
+    hot_ratio = (len(hot_layers) / total_layers) if total_layers else 0.0
+    cold_ratio = (len(cold_layers) / total_layers) if total_layers else 0.0
+    penalty = crit_count * 18 + warn_count * 9 + info_count * 3 + min(20, int(hot_ratio * 35.0 + cold_ratio * 20.0))
+    health_score = max(0, min(100, 100 - penalty))
+
+    est_time_s = max(1, int(round(t_now)))
+    est_savings_s = min(int(est_time_s * 0.35), max(0, int(round(fast_savings_s))))
+
+    return AssessResponse(
+        plate_id=plate_id,
+        material=prof.name,
+        health_score=health_score,
+        tqi_mean=tqi_mean,
+        tqi_hot_layers=len(hot_layers),
+        tqi_cold_layers=len(cold_layers),
+        estimated_time_s=est_time_s,
+        estimated_fast_savings_s=est_savings_s,
+        max_volumetric_flow_mm3s=round(max_flow_seen, 2),
+        flow_limit_mm3s=round(prof.max_flow_mm3s, 2),
+        findings=findings,
+        layers=layers_out,
+        slicer_recommendations=recs,
+    )
+
+
+def assess_3mf_plate(
+    file_path: Path,
+    plate_id: int | None = None,
+    ams_humidity_pct: float | None = None,
+) -> AssessResponse:
+    """Assess a sliced ``.gcode.3mf`` or ``.gcode`` file on disk."""
+    resolved_plate, gcode_text, settings_dict, _ = _extract_plate_from_path(file_path, plate_id)
+    return assess_gcode_text(
+        gcode_text,
+        plate_id=resolved_plate,
+        settings_dict=settings_dict,
+        ams_humidity_pct=ams_humidity_pct,
+    )
+
+
+def build_badge_summary(assess: AssessResponse) -> dict:
+    """Compact JSON dict stored under ``file_metadata['print_advisor']``."""
+    severity_rank = {"critical": 3, "warning": 2, "info": 1}
+    top = max(assess.findings, key=lambda f: severity_rank.get(f.severity, 0), default=None)
+    return PrintAdvisorBadgeSummary(
+        health_score=assess.health_score,
+        tqi_mean=assess.tqi_mean,
+        estimated_fast_savings_s=assess.estimated_fast_savings_s,
+        top_risk_code=top.code if top else None,
+        top_risk_severity=top.severity if top else None,
+        assessed_plate=assess.plate_id,
+    ).model_dump()
+
+
+def try_build_advisor_badge_summary(file_path: Path) -> dict | None:
+    """Fail-open helper called inside ``slice_and_persist``."""
+    try:
+        res = assess_3mf_plate(file_path, plate_id=None)
+        return build_badge_summary(res)
+    except Exception as exc:
+        logger.debug("Print advisor auto-assess skipped for %s: %s", file_path, exc)
+        return None
+
+
+@dataclass
+class EnhanceArtifactResult:
+    output_bytes: bytes
+    plate_id: int
+    before_assess: AssessResponse
+    after_assess: AssessResponse
+    changes_summary: list[str]
+
+
+def _set_or_replace_f(cmd_part: str, new_f: float) -> str:
+    f_token = f"F{int(round(new_f))}"
+    if _F_PARAM_RE.search(cmd_part):
+        return _F_PARAM_RE.sub(f_token, cmd_part, count=1)
+    return f"{cmd_part} {f_token}"
+
+
+def enhance_3mf_plate(
+    source_path: Path,
+    *,
+    plate_id: int | None = None,
+    priority: AdvisorPriority = "balanced",
+) -> EnhanceArtifactResult:
+    """Rewrite extruding ``G1``/``G2``/``G3`` feedrates and layer cooling inside a
+    ``.gcode.3mf`` without altering ANY ``X/Y/Z/E`` toolpath geometry, recomputing
+    ``.gcode.md5`` and updating ``M73`` / ``slice_info.config`` time predictions.
+    """
+    resolved_plate, gcode_text, settings_dict, target_member = _extract_plate_from_path(source_path, plate_id)
+    if target_member is None:
+        raise ValueError("Enhance requires a sliced .gcode.3mf package")
+
+    before = assess_gcode_text(gcode_text, plate_id=resolved_plate, settings_dict=settings_dict)
+    resolved = _resolve_profile_from_settings(settings_dict, gcode_text[:16384])
+    prof = resolved.physics
+    accel = resolved.default_accel_mms2
+
+    layer_map = {lp.layer: lp for lp in before.layers}
+    has_slenderness_risk = any(f.code == "slenderness_detachment" for f in before.findings)
+
+    # Target uniform outer-wall speed for "gloss" mode (25th percentile across layers)
+    ow_speeds = [lp.outer_wall_speed_mms for lp in before.layers if lp.outer_wall_speed_mms is not None and lp.layer >= 1]
+    gloss_target_mms = float(np.percentile(ow_speeds, 25)) if ow_speeds else 60.0
+    gloss_target_mms = max(35.0, min(120.0, gloss_target_mms))
+
+    flow_cap_ratio = {
+        "balanced": 0.88,
+        "fast": 0.90,
+        "strong": 0.80,
+        "gloss": 0.86,
+    }[priority]
+    flow_cap_mm3s = prof.max_flow_mm3s * flow_cap_ratio
+
+    has_start_marker = "; MACHINE_START_GCODE_END" in gcode_text
+    in_print = not has_start_marker
+    saw_explicit_layer = False
+    rel_e = True
+    x = y = z = e = 0.0
+    has_pos = False
+    orig_modal_f = 3000.0
+    emitted_modal_f = 3000.0
+    cur_feature = "wall"
+    cur_layer_idx = 0
+    layer_z = 0.2
+    layer_has_extrusion = False
+
+    scaled_moves = 0
+    sped_up_layers: set[int] = set()
+    cooled_layers: set[int] = set()
+    warmed_layers: set[int] = set()
+
+    out_lines: list[str] = []
+    for raw in gcode_text.splitlines():
+        s = raw.strip()
+        if not s:
+            out_lines.append(raw)
+            continue
+
+        if s[0] == ";":
+            out_lines.append(raw)
+            body = s[1:].strip()
+            bu = body.upper()
+            if bu.startswith("MACHINE_START_GCODE_END"):
+                in_print = True
+            elif bu.startswith("EXECUTABLE_BLOCK_END"):
+                in_print = False
+            elif bu in ("CHANGE_LAYER", "LAYER_CHANGE") or bu.startswith(("CHANGE_LAYER ", "LAYER_CHANGE ")):
+                if in_print and saw_explicit_layer and layer_has_extrusion:
+                    cur_layer_idx += 1
+                    layer_has_extrusion = False
+                saw_explicit_layer = True
+                if in_print and cur_layer_idx >= 1:
+                    lp = layer_map.get(cur_layer_idx)
+                    if lp is not None:
+                        if lp.tqi > 35.0:
+                            out_lines.append(f"M106 P1 S{prof.max_fan_pwm} ; PrintAdvisor cool hot layer")
+                            cooled_layers.add(cur_layer_idx)
+                        elif priority == "strong" and lp.tqi < -35.0:
+                            out_lines.append("M106 P1 S76 ; PrintAdvisor preserve interlayer bond")
+                            warmed_layers.add(cur_layer_idx)
+            elif ":" in body:
+                k, v = body.split(":", 1)
+                ku = k.strip().upper()
+                vs = v.strip()
+                if ku in ("FEATURE", "TYPE"):
+                    cur_feature = vs.lower()
+                elif ku in ("Z_HEIGHT", "Z"):
+                    pz = _first_float(vs)
+                    if pz is not None and pz >= 0:
+                        layer_z = pz
+            continue
+
+        if ";" in raw:
+            cmd_part, comment_part = raw.split(";", 1)
+            comment_suffix = f" ;{comment_part}"
+        else:
+            cmd_part = raw
+            comment_suffix = ""
+        cmd_clean = cmd_part.strip()
+        if not cmd_clean:
+            out_lines.append(raw)
+            continue
+
+        parts = cmd_clean.split()
+        op = parts[0].upper()
+
+        if op == "M83":
+            rel_e = True
+            out_lines.append(raw)
+            continue
+        if op == "M82":
+            rel_e = False
+            out_lines.append(raw)
+            continue
+        if op == "G92":
+            re_val = _read_axis(cmd_clean, "E")
+            if re_val is not None:
+                e = re_val
+            out_lines.append(raw)
+            continue
+
+        if op not in ("G0", "G1", "G2", "G3"):
+            out_lines.append(raw)
+            continue
+
+        f_val = _read_axis(cmd_clean, "F")
+        if f_val is not None and f_val > 0.0:
+            orig_modal_f = f_val
+
+        nx = _read_axis(cmd_clean, "X")
+        ny = _read_axis(cmd_clean, "Y")
+        nz = _read_axis(cmd_clean, "Z")
+        re_val = _read_axis(cmd_clean, "E")
+
+        tx = x if nx is None else nx
+        ty = y if ny is None else ny
+        tz = z if nz is None else nz
+        de = 0.0
+        if re_val is not None:
+            de = re_val if rel_e else (re_val - e)
+            e = re_val
+
+        if not has_pos:
+            x, y, z = tx, ty, tz
+            has_pos = True
+            if f_val is not None:
+                emitted_modal_f = f_val
+            out_lines.append(raw)
+            continue
+
+        is_xy_extrusion = in_print and op in ("G1", "G2", "G3") and de > 0.0 and (tx != x or ty != y)
+        if is_xy_extrusion:
+            if not saw_explicit_layer and layer_has_extrusion and abs(tz - layer_z) > 0.04:
+                cur_layer_idx += 1
+            layer_z = tz if tz > 0 else layer_z
+            layer_has_extrusion = True
+
+        # Do not alter travels or non-extruding moves —
+        # restore orig_modal_f if a previous extruding move changed modal F!
+        if not is_xy_extrusion:
+            if f_val is None and abs(emitted_modal_f - orig_modal_f) > 0.5:
+                restored = _set_or_replace_f(cmd_clean, orig_modal_f)
+                emitted_modal_f = orig_modal_f
+                out_lines.append(f"{restored}{comment_suffix}")
+            else:
+                if f_val is not None:
+                    emitted_modal_f = orig_modal_f
+                out_lines.append(raw)
+            x, y, z = tx, ty, tz
+            continue
+
+        dist = math.sqrt((tx - x) ** 2 + (ty - y) ** 2 + (tz - z) ** 2)
+        orig_speed_mms = orig_modal_f / 60.0
+        lp = layer_map.get(cur_layer_idx)
+        layer_tqi = lp.tqi if lp is not None else 0.0
+
+        is_outer_wall = "outer wall" in cur_feature or cur_feature == "external perimeter"
+        is_inner_wall = "inner wall" in cur_feature or cur_feature == "perimeter"
+        is_infill = "infill" in cur_feature
+
+        target_speed_mms = orig_speed_mms
+
+        if cur_layer_idx >= 1:
+            if priority == "gloss" and is_outer_wall:
+                target_speed_mms = gloss_target_mms
+            elif layer_tqi > 35.0:
+                k_slow = max(0.50, 35.0 / max(layer_tqi, 36.0))
+                target_speed_mms = max(15.0, orig_speed_mms * k_slow)
+                cooled_layers.add(cur_layer_idx)
+            elif layer_tqi < -10.0 and not has_slenderness_risk:
+                k_fast = 1.0
+                if priority == "balanced":
+                    if is_infill:
+                        k_fast = 1.25
+                    elif is_inner_wall:
+                        k_fast = 1.15
+                elif priority == "fast":
+                    if is_infill:
+                        k_fast = 1.35
+                    elif is_inner_wall:
+                        k_fast = 1.22
+                    elif is_outer_wall:
+                        k_fast = 1.12
+                elif priority == "gloss" and is_infill:
+                    k_fast = 1.25
+                if k_fast > 1.0:
+                    target_speed_mms = min(300.0, orig_speed_mms * k_fast)
+                    sped_up_layers.add(cur_layer_idx)
+
+        # Enforce volumetric flow cap strictly on every extruding segment
+        if dist > 1e-5 and de > 0.0:
+            # Q = (de * A_f) / (dist / v) => v_max = (Q_cap * dist) / (de * A_f)
+            v_flow_cap = (flow_cap_mm3s * dist) / (de * FILAMENT_AREA_MM2)
+            if target_speed_mms > v_flow_cap:
+                target_speed_mms = max(15.0, v_flow_cap)
+
+        # Enforce slenderness upper-Z cap if tall/narrow without brim
+        if has_slenderness_risk and cur_layer_idx > int(len(before.layers) * 0.5):
+            target_speed_mms = min(target_speed_mms, 90.0)
+
+        new_f = max(900.0, min(18000.0, target_speed_mms * 60.0))
+        if abs(new_f - orig_modal_f) > 12.0 or abs(emitted_modal_f - new_f) > 12.0:
+            rewritten = _set_or_replace_f(cmd_clean, new_f)
+            emitted_modal_f = round(new_f)
+            if abs(new_f - orig_modal_f) > 12.0:
+                scaled_moves += 1
+            out_lines.append(f"{rewritten}{comment_suffix}")
+        else:
+            if f_val is not None:
+                emitted_modal_f = orig_modal_f
+            out_lines.append(raw)
+
+        x, y, z = tx, ty, tz
+
+    prelim_gcode = "\n".join(out_lines) + ("\n" if gcode_text.endswith("\n") else "")
+    after = assess_gcode_text(prelim_gcode, plate_id=resolved_plate, settings_dict=settings_dict)
+
+    # Rescale M73 R<remaining_minutes> markers proportionally
+    time_ratio = after.estimated_time_s / max(before.estimated_time_s, 1)
+    final_gcode = _M73_R_RE.sub(
+        lambda m: f"{m.group(1)}{max(0, int(round(int(m.group(2)) * time_ratio)))}",
+        prelim_gcode,
+    )
+
+    gcode_bytes = final_gcode.encode("utf-8")
+    md5_name = f"{target_member}.md5"
+    md5_bytes = hashlib.md5(gcode_bytes, usedforsecurity=False).hexdigest().upper().encode("ascii")
+
+    out_buf = io.BytesIO()
+    with zipfile.ZipFile(source_path, "r") as zf_in, zipfile.ZipFile(out_buf, "w", zipfile.ZIP_DEFLATED) as zf_out:
+        wrote_md5 = False
+        for item in zf_in.namelist():
+            info = zf_in.getinfo(item)
+            if item == target_member:
+                zf_out.writestr(info, gcode_bytes)
+            elif item == md5_name:
+                zf_out.writestr(info, md5_bytes)
+                wrote_md5 = True
+            elif item == _SLICE_INFO_PATH:
+                raw_xml = zf_in.read(item).decode("utf-8", errors="ignore")
+                updated_xml = _PREDICTION_RE.sub(rf"\g<1>{after.estimated_time_s}\g<3>", raw_xml)
+                zf_out.writestr(info, updated_xml.encode("utf-8"))
+            else:
+                zf_out.writestr(info, zf_in.read(item))
+        if not wrote_md5:
+            zf_out.writestr(md5_name, md5_bytes)
+
+    out_bytes = out_buf.getvalue()
+
+    # Safety gate: if input carried Bambu start G-code, output must preserve it
+    if not start_gcode_is_missing(source_path.read_bytes(), export_3mf=True):
+        if start_gcode_is_missing(out_bytes, export_3mf=True):
+            raise RuntimeError("Safety check failed: printer start G-code missing after optimization")
+
+    summary: list[str] = [f"Adjusted feedrates on {scaled_moves:,} extruding segments ({priority} profile)"]
+    if sped_up_layers:
+        summary.append(f"Accelerated infill/walls across {len(sped_up_layers)} cool layer(s)")
+    if cooled_layers:
+        summary.append(f"Protected {len(cooled_layers)} hot layer(s) with slower speeds & boosted part fan")
+    if warmed_layers:
+        summary.append(f"Reduced part fan on {len(warmed_layers)} overcooled layer(s) for stronger Z-bonding")
+    if priority == "gloss":
+        summary.append(f"Locked outer-wall speed to {gloss_target_mms:.0f} mm/s for uniform surface sheen")
+
+    return EnhanceArtifactResult(
+        output_bytes=out_bytes,
+        plate_id=resolved_plate,
+        before_assess=before,
+        after_assess=after,
+        changes_summary=summary,
+    )

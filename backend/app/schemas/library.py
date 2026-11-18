@@ -202,6 +202,7 @@ class FileResponse(BaseModel):
     print_time_seconds: int | None = None
     filament_used_grams: float | None = None
     sliced_for_model: str | None = None
+    print_advisor: dict | None = None
 
     class Config:
         from_attributes = True
@@ -243,6 +244,7 @@ class FileListResponse(BaseModel):
     print_time_seconds: int | None = None
     filament_used_grams: float | None = None
     sliced_for_model: str | None = None
+    print_advisor: dict | None = None
 
     # Tags assigned to this file (#1268). Empty list when the file has none —
     # never null, so the FE can iterate without a guard.

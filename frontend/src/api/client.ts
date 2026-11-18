@@ -8604,6 +8604,30 @@ export const api = {
       method: 'DELETE',
     }),
   getLibraryFileGcodeUrl: (id: number) => `${API_BASE}/library/files/${id}/gcode`,
+  assessLibraryFile: (fileId: number, params?: { plate?: number; printer_id?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.plate != null) qs.set('plate', String(params.plate));
+    if (params?.printer_id != null) qs.set('printer_id', String(params.printer_id));
+    const suffix = qs.toString() ? `?${qs.toString()}` : '';
+    return request<AssessResponse>(`/print-advisor/library/${fileId}/assess${suffix}`, { method: 'POST' });
+  },
+  assessArchive: (archiveId: number, params?: { plate?: number; printer_id?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.plate != null) qs.set('plate', String(params.plate));
+    if (params?.printer_id != null) qs.set('printer_id', String(params.printer_id));
+    const suffix = qs.toString() ? `?${qs.toString()}` : '';
+    return request<AssessResponse>(`/print-advisor/archives/${archiveId}/assess${suffix}`, { method: 'POST' });
+  },
+  enhanceLibraryFile: (fileId: number, body: { priority: AdvisorPriority; plate?: number | null; folder_id?: number | null }) =>
+    request<EnhanceResponse>(`/print-advisor/library/${fileId}/enhance`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  enhanceArchive: (archiveId: number, body: { priority: AdvisorPriority; plate?: number | null; folder_id?: number | null }) =>
+    request<EnhanceResponse>(`/print-advisor/archives/${archiveId}/enhance`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   moveLibraryFiles: (fileIds: number[], folderId: number | null) =>
     request<{ status: string; moved: number }>('/library/files/move', {
       method: 'POST',
@@ -9195,6 +9219,7 @@ export interface LibraryFile {
   print_time_seconds: number | null;
   filament_used_grams: number | null;
   sliced_for_model: string | null;
+  print_advisor?: PrintAdvisorBadgeSummary | null;
 }
 
 export interface LibraryTagSummary {
@@ -9223,6 +9248,7 @@ export interface LibraryFileListItem {
   print_time_seconds: number | null;
   filament_used_grams: number | null;
   sliced_for_model: string | null;
+  print_advisor?: PrintAdvisorBadgeSummary | null;
   // Tags assigned to this file (#1268). The backend always emits an empty
   // array when a file has no tags, but the field is typed optional so any
   // legacy code path (or mock) that constructs a LibraryFileListItem without
@@ -10037,3 +10063,68 @@ export const sponsorPromptApi = {
       body: JSON.stringify({ milestone }),
     }),
 };
+
+// ============ Print Advisor ("Assess & Enhance") ============
+
+export type AdvisorPriority = 'balanced' | 'fast' | 'strong' | 'gloss';
+export type AdvisorSeverity = 'info' | 'warning' | 'critical';
+
+export interface PrintAdvisorBadgeSummary {
+  health_score: number;
+  tqi_mean: number;
+  estimated_fast_savings_s: number;
+  top_risk_code?: string | null;
+  top_risk_severity?: AdvisorSeverity | null;
+  assessed_plate?: number;
+}
+
+export interface LayerThermalPoint {
+  layer: number;
+  z: number;
+  duration_s: number;
+  tqi: number;
+  max_flow_mm3s: number;
+  outer_wall_speed_mms?: number | null;
+  fan_pct: number;
+  risk_flags: string[];
+}
+
+export interface AdvisorFinding {
+  code: string;
+  severity: AdvisorSeverity;
+  title: string;
+  detail: string;
+  layer_start?: number | null;
+  layer_end?: number | null;
+  slicer_fix?: string | null;
+}
+
+export interface AssessResponse {
+  plate_id: number;
+  material: string;
+  health_score: number;
+  tqi_mean: number;
+  tqi_hot_layers: number;
+  tqi_cold_layers: number;
+  estimated_time_s: number;
+  estimated_fast_savings_s: number;
+  max_volumetric_flow_mm3s: number;
+  flow_limit_mm3s: number;
+  findings: AdvisorFinding[];
+  layers: LayerThermalPoint[];
+  slicer_recommendations: Record<string, string | number>;
+}
+
+export interface EnhanceResponse {
+  new_library_file_id: number;
+  filename: string;
+  priority: AdvisorPriority;
+  plate_id: number;
+  before_time_s: number;
+  after_time_s: number;
+  time_saved_s: number;
+  before_health_score: number;
+  after_health_score: number;
+  changes_summary: string[];
+  assess: AssessResponse;
+}

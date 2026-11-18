@@ -625,6 +625,26 @@ export function PrintModal({
   const selectedPlateIds = useMemo(() => [...selectedPlates].sort((a, b) => a - b), [selectedPlates]);
   const isMultiPlateSelection = selectedPlates.size > 1;
 
+  const { data: advisorAssess } = useQuery({
+    queryKey: ['print-modal-advisor', archiveId ?? null, libraryFileId ?? null, selectedPlate],
+    queryFn: async () => {
+      try {
+        const params = {
+          plate: selectedPlate ?? undefined,
+          printer_id: selectedPrinters.length === 1 ? selectedPrinters[0] : undefined,
+        };
+        if (isLibraryFile && libraryFileId) return await api.assessLibraryFile(libraryFileId, params);
+        if (archiveId) return await api.assessArchive(archiveId, params);
+        return null;
+      } catch {
+        return null;
+      }
+    },
+    enabled: mode === 'create' && !isMultiPlateSelection && Boolean(archiveId || libraryFileId),
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+
   const perPlateReqQueries = useQueries({
     queries: (isMultiPlateSelection ? selectedPlateIds : []).map((plateId) => ({
       queryKey: isLibraryFile
@@ -2009,6 +2029,36 @@ export function PrintModal({
                 />
               );
             })}
+
+            {/* Print Advisor summary callout when risks or meaningful speedups are detected */}
+            {advisorAssess && (advisorAssess.health_score < 85 || advisorAssess.estimated_fast_savings_s >= 180) && (
+              <div className="p-3 mb-2 bg-bambu-dark/60 border border-bambu-dark-tertiary rounded-lg flex items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-2 text-gray-200">
+                  <AlertTriangle
+                    className={`w-4 h-4 flex-shrink-0 ${
+                      advisorAssess.health_score < 70 ? 'text-amber-400' : 'text-bambu-green'
+                    }`}
+                  />
+                  <span>
+                    Print Advisor: Health <strong>{advisorAssess.health_score}/100</strong>
+                    {advisorAssess.findings[0] ? ` • ${advisorAssess.findings[0].title}` : ''}
+                    {advisorAssess.estimated_fast_savings_s >= 180
+                      ? ` • Up to ~${Math.round(advisorAssess.estimated_fast_savings_s / 60)}m faster available`
+                      : ''}
+                  </span>
+                </div>
+                <a
+                  href={
+                    isLibraryFile && libraryFileId
+                      ? `/gcode-viewer?library_file=${libraryFileId}&advisor=1`
+                      : `/gcode-viewer?archive=${archiveId}&advisor=1`
+                  }
+                  className="text-bambu-green hover:underline flex-shrink-0 font-medium"
+                >
+                  Inspect / Enhance
+                </a>
+              </div>
+            )}
 
             {/* Compatibility warning when sliced model doesn't match selected printer */}
             {slicedForModel && assignmentMode === 'printer' && selectedPrinters.length === 1 && (() => {

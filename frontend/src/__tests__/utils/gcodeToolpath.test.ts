@@ -463,4 +463,32 @@ G1 X40 Y10 E0.5
     const parsed = parseGcodeToolpath(GCODE);
     expect(filterLayersByType(parsed.layers, new Set())).toBe(parsed.layers);
   });
+
+  it('tracks modal feedrate speeds (mm/s) and volumetric flows (mm³/s) in step with segments', () => {
+    const sample = `
+M83
+;TYPE:Outer wall
+;WIDTH:0.42
+G1 X0 Y0 Z0.2 F1200
+G1 X10 Y0 E0.5
+;TYPE:Sparse infill
+G1 X2 Y2 F9000
+G1 X8 Y8 E0.3
+`;
+    const parsed = parseGcodeToolpath(sample);
+    for (const layer of parsed.layers) {
+      expect(layer.speeds.length).toBe(layer.paths.length / 8);
+      expect(layer.flows.length).toBe(layer.paths.length / 8);
+    }
+    // F1200 -> 20 mm/s on outer wall, F9000 -> 150 mm/s on sparse infill
+    expect(parsed.layers[0].speeds).toContain(20);
+    expect(parsed.layers[0].speeds).toContain(150);
+    expect(Math.max(...parsed.layers[0].flows)).toBeGreaterThan(0);
+
+    const filtered = filterLayersByType(parsed.layers, new Set([ToolpathType.travel]));
+    for (const layer of filtered) {
+      expect(layer.speeds.length).toBe(layer.paths.length / 8);
+      expect(layer.flows.length).toBe(layer.paths.length / 8);
+    }
+  });
 });

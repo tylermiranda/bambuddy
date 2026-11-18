@@ -71,6 +71,7 @@ from backend.app.api.routes import (
     overlay_branding,
     pending_uploads,
     pipeline_runs,
+    print_advisor,
     print_log,
     print_queue,
 print_shares,
@@ -13502,6 +13503,7 @@ app.include_router(slicer_pipelines.router, prefix=app_settings.api_prefix)
 app.include_router(pipeline_runs.pipeline_run_create_router, prefix=app_settings.api_prefix)
 app.include_router(pipeline_runs.pipeline_run_router, prefix=app_settings.api_prefix)
 app.include_router(slicer_presets.router, prefix=app_settings.api_prefix)
+app.include_router(print_advisor.router, prefix=app_settings.api_prefix)
 app.include_router(archive_purge.router, prefix=app_settings.api_prefix)
 app.include_router(makerworld.router, prefix=app_settings.api_prefix)
 app.include_router(manyfold.router, prefix=app_settings.api_prefix)

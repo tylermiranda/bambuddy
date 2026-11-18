@@ -1433,6 +1433,28 @@ function FileCard({ file, isSelected, isHighlighted, onSelect, onDelete, onDownl
             {file.sliced_for_model}
           </div>
         )}
+        {file.print_advisor && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/gcode-viewer?library_file=${file.id}&advisor=1`);
+            }}
+            className={`mt-1 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[0.68rem] font-medium ${
+              file.print_advisor.health_score >= 85
+                ? 'bg-emerald-500/15 text-emerald-400'
+                : file.print_advisor.health_score >= 65
+                  ? 'bg-amber-500/15 text-amber-300'
+                  : 'bg-red-500/15 text-red-400'
+            }`}
+            title="Open Print Advisor thermal & speed analysis"
+          >
+            <span>Advisor {file.print_advisor.health_score}/100</span>
+            {file.print_advisor.estimated_fast_savings_s >= 120 && (
+              <span>• -{Math.round(file.print_advisor.estimated_fast_savings_s / 60)}m</span>
+            )}
+          </button>
+        )}
         {/* Counts the whole group, including members in other folders (#671 /
             #2570) — printing this file will offer all of them. */}
         {(file.variant_count ?? 0) > 1 && (
