@@ -52,16 +52,38 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/print-advisor", tags=["print-advisor"])
 
 
-def _live_ams_humidity(printer_id: int | None) -> float | None:
-    """Best-effort max AMS relative humidity (%) for a connected printer."""
-    if printer_id is None:
-        return None
+def _live_printer_context(
+    printer_id: int | None,
+    printer_scope: PrinterScope | None = None,
+) -> tuple[float | None, float | None, str | None]:
+    """Best-effort ``(ams_humidity_pct, printer_nozzle_mm, printer_name)`` for a live printer.
+
+    When ``printer_id`` is omitted on single-printer setups, automatically resolves the
+    sole connected printer allowed by ``printer_scope``.
+    """
     try:
         from backend.app.services.printer_manager import printer_manager
 
-        state = printer_manager.get_status(printer_id)
+        target_pid = printer_id
+        if target_pid is None:
+            allowed_pids = [
+                pid
+                for pid in list(getattr(printer_manager, "_clients", {}).keys())
+                if printer_scope is None or printer_scope.allows(pid)
+            ]
+            if len(allowed_pids) == 1:
+                target_pid = allowed_pids[0]
+        elif printer_scope is not None and not printer_scope.allows(target_pid):
+            return None, None, None
+
+        if target_pid is None:
+            return None, None, None
+
+        state = printer_manager.get_status(target_pid)
         if state is None:
-            return None
+            return None, None, None
+
+        # 1. Max AMS humidity (%)
         raw = getattr(state, "raw_data", None) or {}
         ams_block = (raw.get("ams") or {}).get("ams") or getattr(state, "ams", None) or []
         vals: list[float] = []
@@ -70,9 +92,30 @@ def _live_ams_humidity(printer_id: int | None) -> float | None:
             pct = ams_humidity_percent(unit_dict)
             if pct is not None:
                 vals.append(float(pct))
-        return max(vals) if vals else None
+        humidity_pct = max(vals) if vals else None
+
+        # 2. Active nozzle diameter (mm)
+        nozzle_mm: float | None = None
+        nozzles = getattr(state, "nozzles", None) or []
+        if nozzles:
+            active_idx = getattr(state, "active_extruder", 0) or 0
+            picked_n = nozzles[active_idx] if 0 <= active_idx < len(nozzles) else nozzles[0]
+            raw_diam = getattr(picked_n, "nozzle_diameter", None) or (
+                picked_n.get("nozzle_diameter") if isinstance(picked_n, dict) else None
+            )
+            if raw_diam:
+                try:
+                    cand = float(str(raw_diam).strip())
+                    if 0.15 <= cand <= 1.2:
+                        nozzle_mm = cand
+                except ValueError:
+                    nozzle_mm = None
+
+        info = getattr(printer_manager, "_printer_info", {}).get(target_pid)
+        printer_name = getattr(info, "name", None) or f"Printer #{target_pid}"
+        return humidity_pct, nozzle_mm, printer_name
     except Exception:
-        return None
+        return None, None, None
 
 
 def _strip_3mf_extensions(filename: str) -> str:
@@ -173,6 +216,7 @@ async def assess_library_file(
             Permission.LIBRARY_READ_OWN,
         )
     ),
+    printer_scope: PrinterScope = RequestPrinterScope,
 ) -> AssessResponse:
     """Run thermal TQI & failure-risk diagnostics on a sliced library file."""
     user, can_read_all = auth_result
@@ -183,9 +227,11 @@ async def assess_library_file(
     if not abs_path or not abs_path.is_file():
         raise HTTPException(status_code=404, detail="File not found on disk")
 
-    humidity = _live_ams_humidity(printer_id)
+    humidity, printer_nozzle_mm, printer_name = _live_printer_context(printer_id, printer_scope)
     try:
-        res = await asyncio.to_thread(assess_3mf_plate, abs_path, plate, humidity)
+        res = await asyncio.to_thread(
+            assess_3mf_plate, abs_path, plate, humidity, printer_nozzle_mm, printer_name
+        )
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
@@ -225,10 +271,14 @@ async def assess_archive(
     if not file_path.is_file():
         raise HTTPException(status_code=404, detail="Archive 3MF file not found on disk")
 
-    humidity = _live_ams_humidity(printer_id or archive.printer_id)
+    humidity, printer_nozzle_mm, printer_name = _live_printer_context(
+        printer_id or archive.printer_id, printer_scope
+    )
     target_plate = plate if plate is not None else archive.plate_id
     try:
-        return await asyncio.to_thread(assess_3mf_plate, file_path, target_plate, humidity)
+        return await asyncio.to_thread(
+            assess_3mf_plate, file_path, target_plate, humidity, printer_nozzle_mm, printer_name
+        )
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
@@ -242,6 +292,7 @@ async def enhance_library_file(
     db: AsyncSession = Depends(get_db, scope="function"),
     current_user: User | None = Depends(require_permission_if_auth_enabled(Permission.LIBRARY_UPLOAD)),
     actor: User | ApiKeyActor | None = RequestActor,
+    printer_scope: PrinterScope = RequestPrinterScope,
 ) -> EnhanceResponse:
     """Generate a non-destructive speed/cooling-optimized .gcode.3mf copy in Library."""
     can_read_all = actor is None or actor.has_permission(Permission.LIBRARY_READ_ALL.value)
@@ -252,12 +303,16 @@ async def enhance_library_file(
     if not abs_path or not abs_path.is_file():
         raise HTTPException(status_code=404, detail="Source file not found on disk")
 
+    humidity, printer_nozzle_mm, printer_name = _live_printer_context(None, printer_scope)
     try:
         artifact = await asyncio.to_thread(
             enhance_3mf_plate,
             abs_path,
             plate_id=request.plate,
             priority=request.priority,
+            ams_humidity_pct=humidity,
+            printer_nozzle_mm=printer_nozzle_mm,
+            printer_name=printer_name,
         )
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -317,6 +372,7 @@ async def enhance_archive(
     if not file_path.is_file():
         raise HTTPException(status_code=404, detail="Archive 3MF file not found on disk")
 
+    humidity, printer_nozzle_mm, printer_name = _live_printer_context(archive.printer_id, printer_scope)
     target_plate = request.plate if request.plate is not None else archive.plate_id
     try:
         artifact = await asyncio.to_thread(
@@ -324,6 +380,9 @@ async def enhance_archive(
             file_path,
             plate_id=target_plate,
             priority=request.priority,
+            ams_humidity_pct=humidity,
+            printer_nozzle_mm=printer_nozzle_mm,
+            printer_name=printer_name,
         )
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

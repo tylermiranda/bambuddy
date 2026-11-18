@@ -10102,6 +10102,7 @@ export interface AdvisorFinding {
 export interface AssessResponse {
   plate_id: number;
   material: string;
+  nozzle_diameter_mm?: number;
   health_score: number;
   tqi_mean: number;
   tqi_hot_layers: number;

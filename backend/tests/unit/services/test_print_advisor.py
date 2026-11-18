@@ -199,6 +199,66 @@ def test_normal_pla_long_layers_stay_in_ideal_tqi_without_false_cold_alarm() -> 
 
 
 @pytest.mark.unit
+def test_nozzle_mismatch_helio_header_and_proportional_prediction_scaling(tmp_path: Path) -> None:
+    """0.2mm plate vs 0.4mm printer flags nozzle_mismatch; Enhance scales slice_info prediction proportionally."""
+    lines = [
+        ";helioadditive=(optimization.id=d458e1cc-23e6-4905-85f3-b6fcac974956)",
+        "M1002 gcode_claim_action : 2",
+        "M83",
+        "M106 P1 S255",
+        "; MACHINE_START_GCODE_END",
+    ]
+    for layer in range(4):
+        z = round(0.1 * (layer + 1), 2)
+        lines.extend(
+            [
+                "; CHANGE_LAYER",
+                f"; Z_HEIGHT: {z}",
+                "; FEATURE: Sparse infill",
+                f"G0 X20 Y20 Z{z} F18000",
+                "G1 X120 Y20 E1.2 F1200",
+                "G1 X120 Y120 E1.2 F1200",
+            ]
+        )
+    lines.append("; EXECUTABLE_BLOCK_END")
+    gcode_bytes = ("\n".join(lines) + "\n").encode("utf-8")
+    md5_bytes = hashlib.md5(gcode_bytes, usedforsecurity=False).hexdigest().upper().encode("ascii")
+
+    p = tmp_path / "ring_02mm.gcode.3mf"
+    with zipfile.ZipFile(p, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr(
+            "Metadata/project_settings.config",
+            json.dumps({"filament_type": ["PLA"], "filament_max_volumetric_speed": ["2.0"]}),
+        )
+        zf.writestr(
+            "Metadata/slice_info.config",
+            (
+                '<config><plate><metadata key="index" value="1"/>'
+                '<metadata key="nozzle_diameters" value="0.2"/>'
+                '<metadata key="prediction" value="11160"/></plate></config>'
+            ),
+        )
+        zf.writestr("Metadata/plate_1.gcode", gcode_bytes)
+        zf.writestr("Metadata/plate_1.gcode.md5", md5_bytes)
+
+    assessed = assess_3mf_plate(p, printer_nozzle_mm=0.4, printer_name="P2S")
+    assert assessed.nozzle_diameter_mm == 0.2
+    assert assessed.estimated_time_s == 11160
+    codes = [f.code for f in assessed.findings]
+    assert codes[0] == "nozzle_mismatch"
+    assert "already_optimized" in codes
+
+    enhanced = enhance_3mf_plate(p, priority="fast", printer_nozzle_mm=0.4, printer_name="P2S")
+    assert enhanced.before_assess.estimated_time_s == 11160
+    assert enhanced.after_assess.estimated_time_s < 11160
+    with zipfile.ZipFile(io.BytesIO(enhanced.output_bytes), "r") as zf:
+        xml_out = zf.read("Metadata/slice_info.config").decode("utf-8")
+    m = re.search(r'key="prediction"\s+value="(\d+)"', xml_out)
+    assert m is not None
+    assert int(m.group(1)) == enhanced.after_assess.estimated_time_s
+
+
+@pytest.mark.unit
 def test_assess_performance_under_two_seconds() -> None:
     """50k-line plate must assess well under the 1.5s budget."""
     chunk = [

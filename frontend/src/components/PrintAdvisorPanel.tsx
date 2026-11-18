@@ -115,6 +115,7 @@ export function PrintAdvisorPanel({
             <span>Print Advisor</span>
             <span className="rounded bg-bambu-dark-tertiary px-1.5 py-0.5 text-[0.65rem] font-normal text-bambu-gray">
               {assess.material}
+              {assess.nozzle_diameter_mm ? ` • ${assess.nozzle_diameter_mm}mm` : ''}
             </span>
           </div>
           <div className="mt-0.5 text-[0.7rem] text-bambu-gray">

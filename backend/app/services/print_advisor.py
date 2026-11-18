@@ -63,12 +63,72 @@ _PLATE_NUM_RE = re.compile(r"plate_(\d+)\.gcode$", re.IGNORECASE)
 _F_PARAM_RE = re.compile(r"\bF([0-9]*\.?[0-9]+)", re.IGNORECASE)
 _M73_R_RE = re.compile(r"(\bM73\b[^\n;]*?\bR)(\d+)", re.IGNORECASE)
 _PREDICTION_RE = re.compile(r'(<metadata\s+key="prediction"\s+value=")(\d+)(")')
+_PLATE_BLOCK_RE = re.compile(r"<plate\b[^>]*>.*?</plate>", re.DOTALL | re.IGNORECASE)
+_META_INDEX_RE = re.compile(r'<metadata\s+key="index"\s+value="(\d+)"', re.IGNORECASE)
+_META_NOZZLE_RE = re.compile(r'<metadata\s+key="nozzle_diameters"\s+value="([^"]+)"', re.IGNORECASE)
+_HELIO_HEADER_RE = re.compile(r"^\s*;\s*helioadditive\s*=", re.IGNORECASE | re.MULTILINE)
 
 
 @dataclass
 class ResolvedProfile:
     physics: MaterialPhysics
     default_accel_mms2: float
+    nozzle_diam_mm: float = 0.4
+
+
+def _parse_plate_slice_info(slice_info_xml: str | None, plate_id: int) -> tuple[int | None, float | None]:
+    """Extract ``(prediction_s, nozzle_diam_mm)`` for ``plate_id`` from ``slice_info.config``."""
+    if not slice_info_xml:
+        return None, None
+    blocks = [m.group(0) for m in _PLATE_BLOCK_RE.finditer(slice_info_xml)]
+    target_block: str | None = None
+    for blk in blocks:
+        idx_m = _META_INDEX_RE.search(blk)
+        if idx_m and int(idx_m.group(1)) == plate_id:
+            target_block = blk
+            break
+    if target_block is None and len(blocks) == 1:
+        target_block = blocks[0]
+    scope = target_block or slice_info_xml
+
+    pred_s: int | None = None
+    pm = _PREDICTION_RE.search(scope)
+    if pm:
+        pred_s = int(pm.group(2))
+
+    noz_mm: float | None = None
+    nm = _META_NOZZLE_RE.search(scope)
+    if nm:
+        first_tok = nm.group(1).split(",")[0].strip()
+        cand = _first_float(first_tok)
+        if cand and 0.15 <= cand <= 1.2:
+            noz_mm = cand
+    return pred_s, noz_mm
+
+
+def _scale_plate_prediction_xml(raw_xml: str, plate_id: int, time_ratio: float, fallback_s: int) -> tuple[str, int | None, int | None]:
+    """Scale ``prediction`` inside the matching ``<plate>`` block by ``time_ratio``."""
+    orig_pred: int | None = None
+    new_pred: int | None = None
+
+    def _replace_pred(block_text: str) -> str:
+        nonlocal orig_pred, new_pred
+        pm = _PREDICTION_RE.search(block_text)
+        if not pm:
+            return block_text
+        orig_pred = int(pm.group(2))
+        new_pred = max(1, int(round(orig_pred * time_ratio))) if orig_pred > 0 else max(1, fallback_s)
+        return _PREDICTION_RE.sub(rf"\g<1>{new_pred}\g<3>", block_text, count=1)
+
+    blocks = list(_PLATE_BLOCK_RE.finditer(raw_xml))
+    for m in blocks:
+        blk = m.group(0)
+        idx_m = _META_INDEX_RE.search(blk)
+        if (idx_m and int(idx_m.group(1)) == plate_id) or len(blocks) == 1:
+            updated_blk = _replace_pred(blk)
+            return raw_xml[: m.start()] + updated_blk + raw_xml[m.end() :], orig_pred, new_pred
+
+    return _replace_pred(raw_xml), orig_pred, new_pred
 
 
 def _first_float(val: object) -> float | None:
@@ -109,12 +169,16 @@ def _slot_item(val: object, slot: int) -> object:
     return val
 
 
-def _resolve_profile_from_settings(settings_dict: dict | None, gcode_sample: str) -> ResolvedProfile:
+def _resolve_profile_from_settings(
+    settings_dict: dict | None,
+    gcode_sample: str,
+    slice_nozzle_mm: float | None = None,
+) -> ResolvedProfile:
     raw_type = ""
     raw_preset = ""
     nozzle_override: float | None = None
     flow_override: float | None = None
-    nozzle_diam: float = 0.4
+    nozzle_diam: float = slice_nozzle_mm if (slice_nozzle_mm and 0.15 <= slice_nozzle_mm <= 1.2) else 0.4
     accel = 6000.0
 
     # Detect first active AMS filament slot (M620 S<slot> or T<slot>) so multi-slot
@@ -131,9 +195,10 @@ def _resolve_profile_from_settings(settings_dict: dict | None, gcode_sample: str
         raw_preset = _first_str(_slot_item(settings_dict.get("filament_settings_id"), active_slot))
         nozzle_override = _first_float(_slot_item(settings_dict.get("nozzle_temperature"), active_slot))
         flow_override = _first_float(_slot_item(settings_dict.get("filament_max_volumetric_speed"), active_slot))
-        nd = _first_float(_slot_item(settings_dict.get("nozzle_diameter"), 0))
-        if nd and 0.15 <= nd <= 1.2:
-            nozzle_diam = nd
+        if slice_nozzle_mm is None:
+            nd = _first_float(_slot_item(settings_dict.get("nozzle_diameter"), 0))
+            if nd and 0.15 <= nd <= 1.2:
+                nozzle_diam = nd
         parsed_accel = _first_float(settings_dict.get("default_acceleration"))
         if parsed_accel and parsed_accel > 100.0:
             accel = parsed_accel
@@ -156,7 +221,7 @@ def _resolve_profile_from_settings(settings_dict: dict | None, gcode_sample: str
             nozzle_override = _first_float(picked)
         elif kl == "filament_max_volumetric_speed" and flow_override is None:
             flow_override = _first_float(picked)
-        elif kl == "nozzle_diameter":
+        elif kl == "nozzle_diameter" and slice_nozzle_mm is None:
             nd = _first_float(picked)
             if nd and 0.15 <= nd <= 1.2:
                 nozzle_diam = nd
@@ -183,7 +248,7 @@ def _resolve_profile_from_settings(settings_dict: dict | None, gcode_sample: str
         hygroscopic=base.hygroscopic,
         max_fan_pwm=base.max_fan_pwm,
     )
-    return ResolvedProfile(physics=physics, default_accel_mms2=accel)
+    return ResolvedProfile(physics=physics, default_accel_mms2=accel, nozzle_diam_mm=round(nozzle_diam, 2))
 
 
 def _read_axis(cmd_part: str, axis: str) -> float | None:
@@ -226,8 +291,10 @@ def _compute_tqi(t_sub: float, p: MaterialPhysics) -> float:
     return float(max(-100.0, raw))
 
 
-def _extract_plate_from_path(file_path: Path, plate_id: int | None) -> tuple[int, str, dict | None, str | None]:
-    """Return ``(resolved_plate_id, gcode_text, project_settings, target_zip_member)``."""
+def _extract_plate_from_path(
+    file_path: Path, plate_id: int | None
+) -> tuple[int, str, dict | None, str | None, str | None]:
+    """Return ``(resolved_plate_id, gcode_text, project_settings, target_zip_member, slice_info_xml)``."""
     suffix = file_path.name.lower()
     is_zip = zipfile.is_zipfile(file_path) or suffix.endswith(".3mf")
     if is_zip:
@@ -253,11 +320,14 @@ def _extract_plate_from_path(file_path: Path, plate_id: int | None) -> tuple[int
                         settings_dict = loaded
                 except json.JSONDecodeError:
                     settings_dict = None
-            return resolved_plate, gcode_text, settings_dict, selected
+            slice_info_xml: str | None = None
+            if _SLICE_INFO_PATH in names:
+                slice_info_xml = zf.read(_SLICE_INFO_PATH).decode("utf-8", errors="ignore")
+            return resolved_plate, gcode_text, settings_dict, selected, slice_info_xml
 
     if plate_id is not None and plate_id != 1:
         raise FileNotFoundError(f"Plate {plate_id} not found in plain G-code file")
-    return 1, file_path.read_text(encoding="utf-8", errors="ignore"), None, None
+    return 1, file_path.read_text(encoding="utf-8", errors="ignore"), None, None, None
 
 
 def assess_gcode_text(
@@ -266,13 +336,18 @@ def assess_gcode_text(
     plate_id: int = 1,
     settings_dict: dict | None = None,
     ams_humidity_pct: float | None = None,
+    slice_nozzle_mm: float | None = None,
+    slicer_prediction_s: int | None = None,
+    printer_nozzle_mm: float | None = None,
+    printer_name: str | None = None,
 ) -> AssessResponse:
     """Run single-pass kinematic, 32x32 bed-cell inter-layer thermal TQI, and risk analysis."""
     # Bambu Studio writes `; CONFIG_BLOCK_START` at the tail of `.gcode` as well as head
     config_sample = gcode_text[:16384] + "\n" + gcode_text[-16384:] if len(gcode_text) > 32768 else gcode_text
-    resolved = _resolve_profile_from_settings(settings_dict, config_sample)
+    resolved = _resolve_profile_from_settings(settings_dict, config_sample, slice_nozzle_mm=slice_nozzle_mm)
     prof = resolved.physics
     accel = resolved.default_accel_mms2
+    plate_nozzle_mm = resolved.nozzle_diam_mm
 
     has_start_end_marker = "; MACHINE_START_GCODE_END" in gcode_text
 
@@ -701,6 +776,27 @@ def assess_gcode_text(
         )
         recs["slow_down_for_layer_cooling_outer_wall"] = "false"
 
+    if (
+        printer_nozzle_mm is not None
+        and 0.15 <= printer_nozzle_mm <= 1.2
+        and abs(plate_nozzle_mm - printer_nozzle_mm) >= 0.05
+    ):
+        p_label = printer_name or "printer"
+        findings.insert(
+            0,
+            AdvisorFinding(
+                code="nozzle_mismatch",
+                severity="critical",
+                title=f"Nozzle mismatch: sliced for {plate_nozzle_mm:g}mm vs {printer_nozzle_mm:g}mm on {p_label}",
+                detail=(
+                    f"This plate expects a {plate_nozzle_mm:g}mm nozzle, while {p_label} is configured for "
+                    f"{printer_nozzle_mm:g}mm (triggers Bambu [0500-803C] pause at start)."
+                ),
+                slicer_fix=f"Re-slice for a {printer_nozzle_mm:g}mm nozzle or update the nozzle setting on {p_label}.",
+            ),
+        )
+        recs["nozzle_diameter"] = round(printer_nozzle_mm, 2)
+
     if ams_humidity_pct is not None and ams_humidity_pct > 35.0 and prof.hygroscopic:
         findings.append(
             AdvisorFinding(
@@ -715,21 +811,41 @@ def assess_gcode_text(
             )
         )
 
-    # Health score calculation
+    if _HELIO_HEADER_RE.search(gcode_text[:16384]):
+        findings.append(
+            AdvisorFinding(
+                code="already_optimized",
+                severity="info",
+                title="Pre-optimized G-code detected (Helio Additive)",
+                detail=(
+                    "This plate already contains Helio Additive feedrate adjustments; "
+                    "running Enhance again yields smaller incremental time changes."
+                ),
+            )
+        )
+
+    # Health score calculation (informational already_optimized notice does not penalize health)
     crit_count = sum(1 for f in findings if f.severity == "critical")
     warn_count = sum(1 for f in findings if f.severity == "warning")
-    info_count = sum(1 for f in findings if f.severity == "info")
+    info_count = sum(1 for f in findings if f.severity == "info" and f.code != "already_optimized")
     hot_ratio = (len(hot_layers) / total_layers) if total_layers else 0.0
     cold_ratio = (len(cold_layers) / total_layers) if total_layers else 0.0
     penalty = crit_count * 18 + warn_count * 9 + info_count * 3 + min(20, int(hot_ratio * 35.0 + cold_ratio * 20.0))
     health_score = max(0, min(100, 100 - penalty))
 
-    est_time_s = max(1, int(round(t_now)))
-    est_savings_s = min(int(est_time_s * 0.35), max(0, int(round(fast_savings_s))))
+    kin_time_s = max(1, int(round(t_now)))
+    if slicer_prediction_s is not None and slicer_prediction_s > 0:
+        est_time_s = slicer_prediction_s
+        scaled_fast = fast_savings_s * (slicer_prediction_s / kin_time_s)
+    else:
+        est_time_s = kin_time_s
+        scaled_fast = fast_savings_s
+    est_savings_s = min(int(est_time_s * 0.35), max(0, int(round(scaled_fast))))
 
     return AssessResponse(
         plate_id=plate_id,
         material=prof.name,
+        nozzle_diameter_mm=plate_nozzle_mm,
         health_score=health_score,
         tqi_mean=tqi_mean,
         tqi_hot_layers=len(hot_layers),
@@ -748,14 +864,21 @@ def assess_3mf_plate(
     file_path: Path,
     plate_id: int | None = None,
     ams_humidity_pct: float | None = None,
+    printer_nozzle_mm: float | None = None,
+    printer_name: str | None = None,
 ) -> AssessResponse:
     """Assess a sliced ``.gcode.3mf`` or ``.gcode`` file on disk."""
-    resolved_plate, gcode_text, settings_dict, _ = _extract_plate_from_path(file_path, plate_id)
+    resolved_plate, gcode_text, settings_dict, _, slice_info_xml = _extract_plate_from_path(file_path, plate_id)
+    slicer_pred_s, slice_nozzle_mm = _parse_plate_slice_info(slice_info_xml, resolved_plate)
     return assess_gcode_text(
         gcode_text,
         plate_id=resolved_plate,
         settings_dict=settings_dict,
         ams_humidity_pct=ams_humidity_pct,
+        slice_nozzle_mm=slice_nozzle_mm,
+        slicer_prediction_s=slicer_pred_s,
+        printer_nozzle_mm=printer_nozzle_mm,
+        printer_name=printer_name,
     )
 
 
@@ -804,26 +927,42 @@ def enhance_3mf_plate(
     *,
     plate_id: int | None = None,
     priority: AdvisorPriority = "balanced",
+    ams_humidity_pct: float | None = None,
+    printer_nozzle_mm: float | None = None,
+    printer_name: str | None = None,
 ) -> EnhanceArtifactResult:
     """Rewrite extruding ``G1``/``G2``/``G3`` feedrates and layer cooling inside a
     ``.gcode.3mf`` without altering ANY ``X/Y/Z/E`` toolpath geometry, recomputing
     ``.gcode.md5`` and updating ``M73`` / ``slice_info.config`` time predictions.
     """
-    resolved_plate, gcode_text, settings_dict, target_member = _extract_plate_from_path(source_path, plate_id)
+    resolved_plate, gcode_text, settings_dict, target_member, slice_info_xml = _extract_plate_from_path(
+        source_path, plate_id
+    )
     if target_member is None:
         raise ValueError("Enhance requires a sliced .gcode.3mf package")
 
-    before = assess_gcode_text(gcode_text, plate_id=resolved_plate, settings_dict=settings_dict)
+    slicer_pred_s, slice_nozzle_mm = _parse_plate_slice_info(slice_info_xml, resolved_plate)
+    kin_before = assess_gcode_text(
+        gcode_text,
+        plate_id=resolved_plate,
+        settings_dict=settings_dict,
+        ams_humidity_pct=ams_humidity_pct,
+        slice_nozzle_mm=slice_nozzle_mm,
+        printer_nozzle_mm=printer_nozzle_mm,
+        printer_name=printer_name,
+    )
     config_sample = gcode_text[:16384] + "\n" + gcode_text[-16384:] if len(gcode_text) > 32768 else gcode_text
-    resolved = _resolve_profile_from_settings(settings_dict, config_sample)
+    resolved = _resolve_profile_from_settings(settings_dict, config_sample, slice_nozzle_mm=slice_nozzle_mm)
     prof = resolved.physics
     accel = resolved.default_accel_mms2
 
-    layer_map = {lp.layer: lp for lp in before.layers}
-    has_slenderness_risk = any(f.code == "slenderness_detachment" for f in before.findings)
+    layer_map = {lp.layer: lp for lp in kin_before.layers}
+    has_slenderness_risk = any(f.code == "slenderness_detachment" for f in kin_before.findings)
 
     # Target uniform outer-wall speed for "gloss" mode (25th percentile across layers)
-    ow_speeds = [lp.outer_wall_speed_mms for lp in before.layers if lp.outer_wall_speed_mms is not None and lp.layer >= 1]
+    ow_speeds = [
+        lp.outer_wall_speed_mms for lp in kin_before.layers if lp.outer_wall_speed_mms is not None and lp.layer >= 1
+    ]
     gloss_target_mms = float(np.percentile(ow_speeds, 25)) if ow_speeds else 60.0
     gloss_target_mms = max(35.0, min(120.0, gloss_target_mms))
 
@@ -1029,7 +1168,7 @@ def enhance_3mf_plate(
                 target_speed_mms = max(15.0, v_flow_cap)
 
         # Enforce slenderness upper-Z cap if tall/narrow without brim
-        if has_slenderness_risk and cur_layer_idx > int(len(before.layers) * 0.5):
+        if has_slenderness_risk and cur_layer_idx > int(len(kin_before.layers) * 0.5):
             target_speed_mms = min(target_speed_mms, 90.0)
 
         new_f = max(900.0, min(18000.0, target_speed_mms * 60.0))
@@ -1047,10 +1186,40 @@ def enhance_3mf_plate(
         x, y, z = tx, ty, tz
 
     prelim_gcode = "\n".join(out_lines) + ("\n" if gcode_text.endswith("\n") else "")
-    after = assess_gcode_text(prelim_gcode, plate_id=resolved_plate, settings_dict=settings_dict)
+    kin_after = assess_gcode_text(
+        prelim_gcode,
+        plate_id=resolved_plate,
+        settings_dict=settings_dict,
+        ams_humidity_pct=ams_humidity_pct,
+        slice_nozzle_mm=slice_nozzle_mm,
+        printer_nozzle_mm=printer_nozzle_mm,
+        printer_name=printer_name,
+    )
+
+    # Pure kinematic ratio before/after so slicer cornering prediction scales proportionally
+    # instead of jumping to raw stop-to-stop segment sum on dense 600k-chord meshes.
+    time_ratio = kin_after.estimated_time_s / max(kin_before.estimated_time_s, 1)
+    if slicer_pred_s is not None and slicer_pred_s > 0:
+        anchored_before_s = slicer_pred_s
+        anchored_after_s = max(1, int(round(slicer_pred_s * time_ratio)))
+        scaled_after_savings = max(0, int(round(kin_after.estimated_fast_savings_s * (slicer_pred_s / max(kin_before.estimated_time_s, 1)))))
+        before = kin_before.model_copy(
+            update={
+                "estimated_time_s": anchored_before_s,
+                "estimated_fast_savings_s": max(0, int(round(kin_before.estimated_fast_savings_s * (slicer_pred_s / max(kin_before.estimated_time_s, 1))))),
+            }
+        )
+        after = kin_after.model_copy(
+            update={
+                "estimated_time_s": anchored_after_s,
+                "estimated_fast_savings_s": scaled_after_savings,
+            }
+        )
+    else:
+        before = kin_before
+        after = kin_after
 
     # Rescale M73 R<remaining_minutes> markers proportionally
-    time_ratio = after.estimated_time_s / max(before.estimated_time_s, 1)
     final_gcode = _M73_R_RE.sub(
         lambda m: f"{m.group(1)}{max(0, int(round(int(m.group(2)) * time_ratio)))}",
         prelim_gcode,
@@ -1072,7 +1241,9 @@ def enhance_3mf_plate(
                 wrote_md5 = True
             elif item == _SLICE_INFO_PATH:
                 raw_xml = zf_in.read(item).decode("utf-8", errors="ignore")
-                updated_xml = _PREDICTION_RE.sub(rf"\g<1>{after.estimated_time_s}\g<3>", raw_xml)
+                updated_xml, _, _ = _scale_plate_prediction_xml(
+                    raw_xml, resolved_plate, time_ratio, after.estimated_time_s
+                )
                 zf_out.writestr(info, updated_xml.encode("utf-8"))
             else:
                 zf_out.writestr(info, zf_in.read(item))

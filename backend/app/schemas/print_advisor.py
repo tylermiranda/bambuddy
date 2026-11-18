@@ -49,6 +49,7 @@ class AssessResponse(BaseModel):
 
     plate_id: int
     material: str
+    nozzle_diameter_mm: float = 0.4
     health_score: int = Field(ge=0, le=100)
     tqi_mean: float
     tqi_hot_layers: int
