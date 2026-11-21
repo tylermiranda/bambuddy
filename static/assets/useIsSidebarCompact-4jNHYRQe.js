@@ -1,5 +1,0 @@
-<<<<<<<< HEAD:static/assets/useIsSidebarCompact-7Nd5uh94.js
-import{i as e}from"./rolldown-runtime-aKtaBQYM.js";import{k as t}from"./client-MyvT0tak.js";var n=e(t(),1),r=1144;function i(){let[e,t]=(0,n.useState)(()=>typeof window<`u`&&window.innerWidth<r);return(0,n.useEffect)(()=>{let e=window.matchMedia(`(max-width: ${r-1}px)`),n=e=>{t(e.matches)};return t(e.matches),e.addEventListener(`change`,n),()=>e.removeEventListener(`change`,n)},[]),e}export{i as t};
-========
-import{i as e}from"./rolldown-runtime-aKtaBQYM.js";import{k as t}from"./client-BcKCPdvL.js";var n=e(t(),1),r=1144;function i(){let[e,t]=(0,n.useState)(()=>typeof window<`u`&&window.innerWidth<r);return(0,n.useEffect)(()=>{let e=window.matchMedia(`(max-width: ${r-1}px)`),n=e=>{t(e.matches)};return t(e.matches),e.addEventListener(`change`,n),()=>e.removeEventListener(`change`,n)},[]),e}export{i as t};
->>>>>>>> 8e5a34a9e (feat(camera): add dual-camera support with draggable floating overlays and source toggle):static/assets/useIsSidebarCompact-4jNHYRQe.js
