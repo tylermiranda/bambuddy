@@ -389,6 +389,18 @@ class AppSettings(BaseModel):
             "On sidecars that do not report progress, applies to total slicing time instead."
         ),
     )
+    slicer_default_printer_preset: str = Field(
+        default="",
+        description="Default printer preset name preselected in SliceModal (empty = auto from 3MF / first available).",
+    )
+    slicer_default_process_preset: str = Field(
+        default="",
+        description="Fallback process preset name in SliceModal when the source file has no compatible process preset.",
+    )
+    slicer_use_designer_settings: bool = Field(
+        default=False,
+        description="Pre-select carryable designer 3MF process overrides by default when opening SliceModal.",
+    )
 
     # Prometheus metrics endpoint
     prometheus_enabled: bool = Field(default=False, description="Enable Prometheus metrics endpoint at /metrics")
@@ -845,6 +857,9 @@ class AppSettingsUpdate(BaseModel):
     orcaslicer_api_url: str | None = None
     bambu_studio_api_url: str | None = None
     slicer_stall_timeout_minutes: int | None = Field(default=None, ge=1, le=240)
+    slicer_default_printer_preset: str | None = None
+    slicer_default_process_preset: str | None = None
+    slicer_use_designer_settings: bool | None = None
     prometheus_enabled: bool | None = None
     prometheus_token: str | None = None
     low_stock_threshold: float | None = Field(default=None, ge=0.1, le=99.9)
