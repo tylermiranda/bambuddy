@@ -223,6 +223,7 @@ _BOOL_SETTING_KEYS = frozenset(
         "queue_keep_bed_warm",
         "obico_enabled",
         "octoeverywhere_enabled",
+        "slicer_use_designer_settings",
     }
 )
 
@@ -314,6 +315,8 @@ async def _build_settings_response(db: AsyncSession, is_api_key: bool = False, m
             # serializes None as the literal string "None"; strip it back so
             # the frontend sees a true null and falls back as intended.
             settings_dict[setting.key] = setting.value if setting.value and setting.value != "None" else None
+        elif setting.key in ("slicer_default_printer_preset", "slicer_default_process_preset"):
+            settings_dict[setting.key] = setting.value if setting.value and setting.value != "None" else ""
         else:
             settings_dict[setting.key] = setting.value
 
@@ -713,6 +716,9 @@ _UI_FLAG_FIELDS: tuple[str, ...] = (
     "use_slicer_api",
     "open_in_slicer",
     "preferred_slicer",
+    "slicer_default_printer_preset",
+    "slicer_default_process_preset",
+    "slicer_use_designer_settings",
     "disable_filament_warnings",
     "prefer_lowest_filament",
     "per_printer_mapping_expanded",
