@@ -105,12 +105,15 @@ export function pickProcessDefault(
   printerName: string | null,
   compatIndex: PrinterCompatibilityIndex,
   preferredName?: string | null,
+  fallbackDefaultName?: string | null,
 ): PresetRef | null {
-  const preferred = findPresetByName(by, 'process', preferredName);
-  if (preferred) {
-    const p = findPreset(by, preferred, 'process');
-    if (p && presetCompatibility(p, 'process', printerName, compatIndex) !== 'mismatch') {
-      return preferred;
+  for (const candidateName of [preferredName, fallbackDefaultName]) {
+    const preferred = findPresetByName(by, 'process', candidateName);
+    if (preferred) {
+      const p = findPreset(by, preferred, 'process');
+      if (p && presetCompatibility(p, 'process', printerName, compatIndex) !== 'mismatch') {
+        return preferred;
+      }
     }
   }
   for (const wanted of ['match', 'unknown'] as const) {

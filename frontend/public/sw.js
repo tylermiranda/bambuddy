@@ -1,5 +1,5 @@
 // Bambuddy Service Worker
-const CACHE_NAME = 'mirandaprint-v33';
+const CACHE_NAME = 'mirandaprint-v34';
 const STATIC_CACHE = 'mirandaprint-static-v31';
 
 // Static assets to cache on install

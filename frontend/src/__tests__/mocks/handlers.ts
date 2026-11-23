@@ -628,6 +628,17 @@ export const handlers = [
   http.get('/api/v1/printers/:id/current-print-user', () => HttpResponse.json(null)),
   // What a user who may not read /settings gets instead (useUiSettings).
   http.get('/api/v1/settings/ui-flags', () => HttpResponse.json({})),
+  http.get('/api/v1/slicer/printer-models', () => HttpResponse.json({})),
+  http.get('/api/v1/slicer/presets', () =>
+    HttpResponse.json({
+      orca_cloud: { printer: [], process: [], filament: [] },
+      cloud: { printer: [], process: [], filament: [] },
+      local: { printer: [], process: [], filament: [] },
+      standard: { printer: [], process: [], filament: [] },
+      cloud_status: 'ok',
+      orca_cloud_status: 'ok',
+    }),
+  ),
   http.get('/api/v1/settings/ui-preferences', () => HttpResponse.json({})),
   http.get('/api/v1/settings/check-ffmpeg', () =>
     HttpResponse.json({ available: false, version: null })

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertTriangle, Check, Edit2, Loader2, Printer as PrinterIcon, Search, Trash2, Workflow, X } from 'lucide-react';
+import { AlertTriangle, Check, ChevronDown, Cog, Edit2, Loader2, Printer as PrinterIcon, Search, Trash2, Workflow, X } from 'lucide-react';
 import {
   api,
   type PipelineRun,
@@ -14,6 +14,7 @@ import {
 import { Card, CardContent, CardHeader } from './Card';
 import { useToast } from '../contexts/ToastContext';
 import { listedRef } from '../utils/slicePresetPicker';
+import { buildCompatibilityIndex, presetCompatibility } from '../utils/slicerPrinterMatch';
 
 // Resolve a PresetRef back to its pretty name via the unified-presets listing.
 // Returns null when the ref no longer points at a known preset — render a
@@ -161,6 +162,8 @@ export function SlicerPipelinesPanel() {
   }, [allPipelines, searchTerm, targetFilter]);
 
   return (
+    <div className="space-y-6">
+    <SlicerDefaultsCard presets={presets} />
     <Card>
       <CardHeader>
         <h3 className="text-base font-semibold text-white flex items-center gap-2">
@@ -280,6 +283,191 @@ export function SlicerPipelinesPanel() {
             ))}
           </div>
         )}
+      </CardContent>
+    </Card>
+    </div>
+  );
+}
+
+function SlicerDefaultsCard({ presets }: { presets: UnifiedPresetsResponse | undefined }) {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
+
+  const { data: uiFlags } = useQuery({
+    queryKey: ['ui-flags'],
+    queryFn: () => (api.getUiFlags ? api.getUiFlags() : api.getSettings()),
+  });
+  const { data: printerModels } = useQuery({
+    queryKey: ['slicerPrinterModels'],
+    queryFn: () => api.getSlicerPrinterModels(),
+    staleTime: Infinity,
+  });
+
+  const saveDefaults = useMutation({
+    mutationFn: (patch: {
+      slicer_default_printer_preset?: string;
+      slicer_default_process_preset?: string;
+      slicer_use_designer_settings?: boolean;
+    }) => api.updateSettings(patch),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ui-flags'] });
+      queryClient.invalidateQueries({ queryKey: ['settings'] });
+      showToast(t('settings.toast.settingsSaved', 'Settings saved'), 'success');
+    },
+    onError: (err: Error) => {
+      showToast(err.message || 'Failed to save slicer defaults', 'error');
+    },
+  });
+
+  const defaultPrinter = uiFlags?.slicer_default_printer_preset ?? '';
+  const defaultProcess = uiFlags?.slicer_default_process_preset ?? '';
+  const useDesigner = uiFlags?.slicer_use_designer_settings === true;
+
+  const printerNames = useMemo(() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    if (presets) {
+      for (const tier of [presets.local, presets.orca_cloud, presets.cloud, presets.standard]) {
+        for (const p of tier.printer) {
+          if (!seen.has(p.name)) {
+            seen.add(p.name);
+            out.push(p.name);
+          }
+        }
+      }
+    }
+    out.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+    if (defaultPrinter && !seen.has(defaultPrinter)) out.unshift(defaultPrinter);
+    return out;
+  }, [presets, defaultPrinter]);
+
+  const processNames = useMemo(() => {
+    const parents: Record<string, string> = {};
+    if (presets) {
+      for (const tier of [presets.local, presets.orca_cloud, presets.cloud, presets.standard]) {
+        for (const p of tier.printer) {
+          if (p.inherits && !Object.hasOwn(parents, p.name)) parents[p.name] = p.inherits;
+        }
+      }
+    }
+    const compatIndex = buildCompatibilityIndex(printerModels ?? {}, parents);
+    const seen = new Set<string>();
+    const compat: string[] = [];
+    const all: string[] = [];
+    if (presets) {
+      for (const tier of [presets.local, presets.orca_cloud, presets.cloud, presets.standard]) {
+        for (const p of tier.process) {
+          if (seen.has(p.name)) continue;
+          seen.add(p.name);
+          all.push(p.name);
+          if (!defaultPrinter || presetCompatibility(p, 'process', defaultPrinter, compatIndex) !== 'mismatch') {
+            compat.push(p.name);
+          }
+        }
+      }
+    }
+    const chosen = compat.length > 0 ? compat : all;
+    chosen.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+    if (defaultProcess && !chosen.includes(defaultProcess)) chosen.unshift(defaultProcess);
+    return chosen;
+  }, [presets, printerModels, defaultPrinter, defaultProcess]);
+
+  if (!uiFlags) return null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <h3 className="text-base font-semibold text-white flex items-center gap-2">
+          <Cog className="w-4 h-4 text-bambu-green" />
+          {t('settings.slicerDefaults.title', 'Slicer Defaults')}
+        </h3>
+        <p className="text-xs text-bambu-gray mt-1">
+          {t(
+            'settings.slicerDefaults.subtitle',
+            'Default printer profile, fallback process profile, and 3MF designer-override behavior when opening Slice model.',
+          )}
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div>
+          <label className="block text-sm text-bambu-gray mb-1">
+            {t('settings.slicerDefaultPrinter', 'Default printer profile')}
+          </label>
+          <div className="relative">
+            <select
+              value={defaultPrinter}
+              onChange={(e) => saveDefaults.mutate({ slicer_default_printer_preset: e.target.value })}
+              className="w-full px-3 py-2 pr-10 bg-bambu-dark border border-bambu-dark-tertiary rounded-lg text-white focus:border-bambu-green focus:outline-none appearance-none cursor-pointer"
+            >
+              <option value="">
+                {t('settings.slicerDefaultPrinterAuto', 'Auto (from file or first available)')}
+              </option>
+              {printerNames.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-bambu-gray pointer-events-none" />
+          </div>
+          <p className="text-xs text-bambu-gray mt-1">
+            {t(
+              'settings.slicerDefaultPrinterDescription',
+              'Pre-select this printer and nozzle profile whenever opening Slice model, even when a 3MF was saved for another printer.',
+            )}
+          </p>
+        </div>
+        <div>
+          <label className="block text-sm text-bambu-gray mb-1">
+            {t('settings.slicerDefaultProcess', 'Default fallback process profile')}
+          </label>
+          <div className="relative">
+            <select
+              value={defaultProcess}
+              onChange={(e) => saveDefaults.mutate({ slicer_default_process_preset: e.target.value })}
+              className="w-full px-3 py-2 pr-10 bg-bambu-dark border border-bambu-dark-tertiary rounded-lg text-white focus:border-bambu-green focus:outline-none appearance-none cursor-pointer"
+            >
+              <option value="">
+                {t('settings.slicerDefaultProcessAuto', 'Auto (0.20mm Standard)')}
+              </option>
+              {processNames.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-bambu-gray pointer-events-none" />
+          </div>
+          <p className="text-xs text-bambu-gray mt-1">
+            {t(
+              'settings.slicerDefaultProcessDescription',
+              'Used when slicing STLs or 3MFs whose saved process profile is for a different printer. Compatible layer-height presets inside the file are kept.',
+            )}
+          </p>
+        </div>
+        <div className="flex items-center justify-between gap-3 pt-1">
+          <div className="min-w-0">
+            <p className="text-sm text-white">
+              {t('settings.slicerUseDesignerSettings', "Default to designer's settings")}
+            </p>
+            <p className="text-xs text-bambu-gray">
+              {t(
+                'settings.slicerUseDesignerSettingsDescription',
+                'Automatically pre-select carryable 3MF process overrides (infill, walls, supports) when opening Slice model.',
+              )}
+            </p>
+          </div>
+          <label className="flex items-center cursor-pointer shrink-0">
+            <input
+              type="checkbox"
+              checked={useDesigner}
+              onChange={(e) => saveDefaults.mutate({ slicer_use_designer_settings: e.target.checked })}
+              className="sr-only peer"
+            />
+            <div className="relative w-11 h-6 bg-bambu-dark-tertiary rounded-full peer peer-checked:bg-bambu-green peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-bambu-green/50 transition-colors after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-transform peer-checked:after:translate-x-5"></div>
+          </label>
+        </div>
       </CardContent>
     </Card>
   );
