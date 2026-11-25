@@ -268,6 +268,75 @@ def _read_axis(cmd_part: str, axis: str) -> float | None:
         return None
 
 
+def _motion_geometry(
+    op: str,
+    cmd_part: str,
+    x: float,
+    y: float,
+    z: float,
+    tx: float,
+    ty: float,
+    tz: float,
+) -> tuple[float, bool, float, float]:
+    """Return ``(dist_3d_mm, has_xy_motion, mid_x, mid_y)`` for linear and circular G-code moves."""
+    if op not in ("G2", "G3"):
+        dx = tx - x
+        dy = ty - y
+        dz = tz - z
+        return (
+            math.sqrt(dx * dx + dy * dy + dz * dz),
+            (tx != x or ty != y),
+            0.5 * (x + tx),
+            0.5 * (y + ty),
+        )
+
+    two_pi = 2.0 * math.pi
+    i_off = _read_axis(cmd_part, "I")
+    j_off = _read_axis(cmd_part, "J")
+    if i_off is not None or j_off is not None:
+        ii = 0.0 if i_off is None else i_off
+        jj = 0.0 if j_off is None else j_off
+        r0 = math.hypot(ii, jj)
+        if r0 > 1e-6:
+            cx = x + ii
+            cy = y + jj
+            r1 = math.hypot(tx - cx, ty - cy)
+            r = 0.5 * (r0 + r1)
+            chord = math.hypot(tx - x, ty - y)
+            a0 = math.atan2(y - cy, x - cx)
+            if chord <= 1e-5:
+                sweep = two_pi
+            else:
+                a1 = math.atan2(ty - cy, tx - cx)
+                sweep = ((a0 - a1) % two_pi) if op == "G2" else ((a1 - a0) % two_pi)
+                if sweep <= 1e-6:
+                    sweep = two_pi
+            arc_xy = r * sweep
+            a_mid = (a0 - 0.5 * sweep) if op == "G2" else (a0 + 0.5 * sweep)
+            mx = cx + r * math.cos(a_mid)
+            my = cy + r * math.sin(a_mid)
+            return math.hypot(arc_xy, tz - z), arc_xy > 1e-6, mx, my
+
+    r_param = _read_axis(cmd_part, "R")
+    chord = math.hypot(tx - x, ty - y)
+    if r_param is not None and abs(r_param) > 1e-6 and chord > 1e-6:
+        r_abs = max(abs(r_param), 0.5 * chord)
+        half_ang = math.asin(min(1.0, chord / (2.0 * r_abs)))
+        sweep = (two_pi - 2.0 * half_ang) if r_param < 0 else (2.0 * half_ang)
+        arc_xy = r_abs * sweep
+        return math.hypot(arc_xy, tz - z), True, 0.5 * (x + tx), 0.5 * (y + ty)
+
+    dx = tx - x
+    dy = ty - y
+    dz = tz - z
+    return (
+        math.sqrt(dx * dx + dy * dy + dz * dz),
+        (tx != x or ty != y),
+        0.5 * (x + tx),
+        0.5 * (y + ty),
+    )
+
+
 def _move_duration_s(dist_mm: float, speed_mms: float, accel_mms2: float) -> float:
     if dist_mm <= 1e-6:
         return 0.0
@@ -558,33 +627,37 @@ def assess_gcode_text(
             has_pos = True
             continue
 
-        dist = math.sqrt((tx - x) ** 2 + (ty - y) ** 2 + (tz - z) ** 2)
+        dist, has_xy_motion, mx, my = _motion_geometry(op, cmd_part, x, y, z, tx, ty, tz)
         speed_mms = feed_mm_min / 60.0
         dt = _move_duration_s(dist, speed_mms, accel)
 
         if in_print:
-            if de > 0.0 and (tx != x or ty != y):
+            if de > 0.0 and has_xy_motion:
                 if not saw_explicit_layer and layer_has_extrusion and abs(tz - layer_z) > 0.04:
                     flush_layer()
                 if not layer_has_extrusion:
                     layer_z = tz if tz > 0 else layer_z
                 layer_has_extrusion = True
 
-                if tx < min_x:
-                    min_x = tx
-                if ty < min_y:
-                    min_y = ty
-                if tx > max_x:
-                    max_x = tx
-                if ty > max_y:
-                    max_y = ty
+                lo_x = tx if tx <= mx else mx
+                hi_x = tx if tx >= mx else mx
+                lo_y = ty if ty <= my else my
+                hi_y = ty if ty >= my else my
+                if lo_x < min_x:
+                    min_x = lo_x
+                if lo_y < min_y:
+                    min_y = lo_y
+                if hi_x > max_x:
+                    max_x = hi_x
+                if hi_y > max_y:
+                    max_y = hi_y
                 if tz > max_z:
                     max_z = tz
                 if layer_idx == 0 and tz <= 0.6:
-                    l0_min_x = min(l0_min_x, x, tx)
-                    l0_max_x = max(l0_max_x, x, tx)
-                    l0_min_y = min(l0_min_y, y, ty)
-                    l0_max_y = max(l0_max_y, y, ty)
+                    l0_min_x = min(l0_min_x, x, tx, mx)
+                    l0_max_x = max(l0_max_x, x, tx, mx)
+                    l0_min_y = min(l0_min_y, y, ty, my)
+                    l0_max_y = max(l0_max_y, y, ty, my)
 
                 layer_h = max(0.06, min(0.60, layer_z - prev_layer_z if layer_z > prev_layer_z else 0.20))
                 flow = (de * FILAMENT_AREA_MM2) / max(dt, 1e-4)
@@ -614,8 +687,6 @@ def assess_gcode_text(
                 # Evaluate inter-layer cooling once per 8mm cell per layer against prev_layer_cell_t
                 # Recording only the FIRST touch per cell per layer prevents late-layer infill from
                 # overwriting early-layer perimeter timestamps inside the same 8mm cell.
-                mx = 0.5 * (x + tx)
-                my = 0.5 * (y + ty)
                 cx = max(0, min(bed_grid - 1, int((mx / bed_span) * (bed_grid - 1))))
                 cy = max(0, min(bed_grid - 1, int((my / bed_span) * (bed_grid - 1))))
                 if cur_layer_cell_t[cx, cy] < -1e8:
@@ -1101,7 +1172,13 @@ def enhance_3mf_plate(
             out_lines.append(raw)
             continue
 
-        is_xy_extrusion = in_print and op in ("G1", "G2", "G3") and de > 0.0 and (tx != x or ty != y)
+        if op in ("G1", "G2", "G3"):
+            dist, has_xy_motion, _, _ = _motion_geometry(op, cmd_clean, x, y, z, tx, ty, tz)
+        else:
+            dist = 0.0
+            has_xy_motion = tx != x or ty != y
+
+        is_xy_extrusion = in_print and op in ("G1", "G2", "G3") and de > 0.0 and has_xy_motion
         if is_xy_extrusion:
             if not saw_explicit_layer and layer_has_extrusion and abs(tz - layer_z) > 0.04:
                 cur_layer_idx += 1
@@ -1122,7 +1199,6 @@ def enhance_3mf_plate(
             x, y, z = tx, ty, tz
             continue
 
-        dist = math.sqrt((tx - x) ** 2 + (ty - y) ** 2 + (tz - z) ** 2)
         orig_speed_mms = orig_modal_f / 60.0
         lp = layer_map.get(cur_layer_idx)
         layer_tqi = lp.tqi if lp is not None else 0.0

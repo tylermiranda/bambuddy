@@ -272,3 +272,70 @@ def test_assess_performance_under_two_seconds() -> None:
     elapsed = time.perf_counter() - t0
     assert len(res.layers) == 80
     assert elapsed < 2.0
+
+
+@pytest.mark.unit
+def test_g2_g3_circular_arcs_use_true_arc_length_not_chord_in_assess_and_enhance(tmp_path: Path) -> None:
+    """Near-closed G3 tree-support arcs and full 360-deg G2 circles must use true arc length (R * dtheta),
+    never straight-line chord distance, preventing false >100 mm3/s flow spikes and F900 throttling.
+    """
+    lines = [
+        "M1002 gcode_claim_action : 2",
+        "M83",
+        "M106 P1 S255",
+        "; MACHINE_START_GCODE_END",
+    ]
+    for layer in range(6):
+        z = round(0.16 * (layer + 1), 2)
+        lines.extend(
+            [
+                "; CHANGE_LAYER",
+                f"; Z_HEIGHT: {z}",
+                "; FEATURE: Outer wall",
+                f"G0 X30 Y30 Z{z} F18000",
+                "G1 X190 Y30 E4.45 F3600",
+                "G1 X190 Y190 E4.45 F3600",
+                "G1 X30 Y190 E4.45 F3600",
+                "G1 X30 Y30 E4.45 F3600",
+                "; FEATURE: Support",
+                # Real Bambu Studio 356-deg CCW tree-support arc: chord = 0.057mm, true arc = 5.59mm (~9.3 mm3/s)
+                f"G0 X205.768 Y181.918 Z{z} F18000",
+                "G3 X205.711 Y181.91 I-0.075 J0.887 E0.14347 F9000",
+                # Full 360-deg CW G2 circle where start XY == end XY: chord = 0.0mm, true arc = 2*pi*1.5 = 9.425mm
+                f"G0 X160.0 Y160.0 Z{z} F18000",
+                "G2 X160.0 Y160.0 I1.5 J0.0 E0.24 F9000",
+            ]
+        )
+    lines.append("; EXECUTABLE_BLOCK_END")
+    src_gcode = "\n".join(lines) + "\n"
+    src_3mf = _make_3mf(
+        tmp_path,
+        src_gcode,
+        settings={
+            "filament_type": ["PLA"],
+            "nozzle_temperature": ["220"],
+            "filament_max_volumetric_speed": ["22"],
+            "default_acceleration": "10000",
+            "machine_start_gcode": "M1002 gcode_claim_action : 2\nM620 S0A\n",
+        },
+    )
+
+    assessed = assess_3mf_plate(src_3mf)
+    assert assessed.max_volumetric_flow_mm3s < 12.0, f"Expected < 12 mm3/s true flow, got {assessed.max_volumetric_flow_mm3s}"
+    assert not any(f.code == "volumetric_flow_ceiling" for f in assessed.findings)
+    assert assessed.health_score == 100
+
+    enhanced = enhance_3mf_plate(src_3mf, priority="balanced")
+    with zipfile.ZipFile(io.BytesIO(enhanced.output_bytes), "r") as zf:
+        new_gcode = zf.read("Metadata/plate_1.gcode").decode("utf-8")
+    assert _extract_xyze(src_gcode) == _extract_xyze(new_gcode)
+    # Neither the 356-deg G3 arc nor the 360-deg G2 circle should be throttled down to F900!
+    arc_lines = [ln for ln in new_gcode.splitlines() if ln.startswith(("G2 ", "G3 "))]
+    assert len(arc_lines) == 12
+    assert not any(re.search(r"\bF900\b", ln) for ln in arc_lines), (
+        f"G2/G3 arcs were erroneously throttled: {arc_lines[:3]}"
+    )
+    assert all(re.search(r"\bF9000\b", ln) for ln in arc_lines), (
+        f"Expected F9000 preserved on G2/G3 arcs: {arc_lines[:3]}"
+    )
+    assert enhanced.after_assess.health_score == 100
