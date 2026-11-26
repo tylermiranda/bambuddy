@@ -67,6 +67,7 @@ _PLATE_BLOCK_RE = re.compile(r"<plate\b[^>]*>.*?</plate>", re.DOTALL | re.IGNORE
 _META_INDEX_RE = re.compile(r'<metadata\s+key="index"\s+value="(\d+)"', re.IGNORECASE)
 _META_NOZZLE_RE = re.compile(r'<metadata\s+key="nozzle_diameters"\s+value="([^"]+)"', re.IGNORECASE)
 _HELIO_HEADER_RE = re.compile(r"^\s*;\s*helioadditive\s*=", re.IGNORECASE | re.MULTILINE)
+_MATERIAL_ID_BY_NAME: dict[str, int] = {name: idx for idx, name in enumerate(MATERIAL_PROFILES)}
 
 
 @dataclass
@@ -74,6 +75,27 @@ class ResolvedProfile:
     physics: MaterialPhysics
     default_accel_mms2: float
     nozzle_diam_mm: float = 0.4
+    close_fan_first_layers: int = 1
+
+
+def _format_signed_tqi(val: float) -> str:
+    rounded = int(round(val))
+    return f"+{rounded}" if rounded > 0 else f"{rounded}"
+
+
+def _parse_tool_slot_switch(op: str, cmd_part: str) -> int | None:
+    """Parse active AMS/extruder slot from ``M620 S<slot>[A]`` or ``T<slot>``, ignoring unload codes."""
+    if len(op) >= 2 and op[0] == "T" and op[1:].isdigit():
+        cand = int(op[1:])
+        return cand if 0 <= cand < 64 else None
+    if op == "M620":
+        for tok in cmd_part.split()[1:]:
+            if len(tok) >= 2 and tok[0] in ("S", "s"):
+                raw_slot = tok[1:].rstrip("Aa")
+                if raw_slot.isdigit():
+                    cand = int(raw_slot)
+                    return cand if 0 <= cand < 64 else None
+    return None
 
 
 def _parse_plate_slice_info(slice_info_xml: str | None, plate_id: int) -> tuple[int | None, float | None]:
@@ -106,7 +128,9 @@ def _parse_plate_slice_info(slice_info_xml: str | None, plate_id: int) -> tuple[
     return pred_s, noz_mm
 
 
-def _scale_plate_prediction_xml(raw_xml: str, plate_id: int, time_ratio: float, fallback_s: int) -> tuple[str, int | None, int | None]:
+def _scale_plate_prediction_xml(
+    raw_xml: str, plate_id: int, time_ratio: float, fallback_s: int
+) -> tuple[str, int | None, int | None]:
     """Scale ``prediction`` inside the matching ``<plate>`` block by ``time_ratio``."""
     orig_pred: int | None = None
     new_pred: int | None = None
@@ -169,86 +193,145 @@ def _slot_item(val: object, slot: int) -> object:
     return val
 
 
+class _PlateProfiles:
+    """Per-slot material physics and fan/kinematic settings resolved from 3MF + G-code metadata."""
+
+    def __init__(
+        self,
+        settings_dict: dict | None,
+        gcode_sample: str,
+        slice_nozzle_mm: float | None = None,
+    ) -> None:
+        self._settings = settings_dict if isinstance(settings_dict, dict) else None
+        self._comment_tokens: dict[str, list[str]] = {}
+        self._cache: dict[int, ResolvedProfile] = {}
+
+        nozzle_diam: float = slice_nozzle_mm if (slice_nozzle_mm and 0.15 <= slice_nozzle_mm <= 1.2) else 0.4
+        accel = 6000.0
+        initial_slot: int | None = None
+
+        if self._settings is not None:
+            if slice_nozzle_mm is None:
+                nd = _first_float(_slot_item(self._settings.get("nozzle_diameter"), 0))
+                if nd and 0.15 <= nd <= 1.2:
+                    nozzle_diam = nd
+            parsed_accel = _first_float(self._settings.get("default_acceleration"))
+            if parsed_accel and parsed_accel > 100.0:
+                accel = parsed_accel
+
+        for line in gcode_sample.splitlines():
+            s = line.strip()
+            if not s:
+                continue
+            if s[0] == ";":
+                body = s[1:].strip()
+                if "=" not in body:
+                    continue
+                k, v = [p.strip() for p in body.split("=", 1)]
+                kl = k.lower()
+                tokens = [tok.strip().strip('"') for tok in re.split(r"[;,]", v) if tok.strip()]
+                if not tokens:
+                    continue
+                if kl not in self._comment_tokens:
+                    self._comment_tokens[kl] = tokens
+                if kl == "nozzle_diameter" and slice_nozzle_mm is None:
+                    nd = _first_float(tokens[0])
+                    if nd and 0.15 <= nd <= 1.2:
+                        nozzle_diam = nd
+                elif kl == "default_acceleration":
+                    pa = _first_float(tokens[0])
+                    if pa and pa > 100.0:
+                        accel = pa
+                continue
+
+            if initial_slot is None and s[0] in ("M", "T", "m", "t"):
+                cmd_part = s.split(";", 1)[0].strip()
+                if cmd_part:
+                    sp = cmd_part.find(" ")
+                    op = (cmd_part[:sp] if sp > 0 else cmd_part).upper()
+                    cand = _parse_tool_slot_switch(op, cmd_part)
+                    if cand is not None:
+                        initial_slot = cand
+
+        self.initial_slot: int = initial_slot if initial_slot is not None else 0
+        self.default_accel_mms2: float = accel
+        self.nozzle_diam_mm: float = round(nozzle_diam, 2)
+
+    def _comment_slot_str(self, key: str, slot: int) -> str:
+        tokens = self._comment_tokens.get(key)
+        if not tokens:
+            return ""
+        return tokens[slot] if 0 <= slot < len(tokens) else tokens[0]
+
+    def for_slot(self, slot: int) -> ResolvedProfile:
+        cached = self._cache.get(slot)
+        if cached is not None:
+            return cached
+
+        raw_type = ""
+        raw_preset = ""
+        nozzle_override: float | None = None
+        flow_override: float | None = None
+        close_fan_override: float | None = None
+
+        if self._settings is not None:
+            raw_type = _first_str(_slot_item(self._settings.get("filament_type"), slot))
+            raw_preset = _first_str(_slot_item(self._settings.get("filament_settings_id"), slot))
+            nozzle_override = _first_float(_slot_item(self._settings.get("nozzle_temperature"), slot))
+            flow_override = _first_float(_slot_item(self._settings.get("filament_max_volumetric_speed"), slot))
+            close_fan_override = _first_float(_slot_item(self._settings.get("close_fan_the_first_x_layers"), slot))
+
+        if not raw_type:
+            raw_type = self._comment_slot_str("filament_type", slot)
+        if not raw_preset:
+            raw_preset = self._comment_slot_str("filament_settings_id", slot)
+        if nozzle_override is None:
+            nozzle_override = _first_float(self._comment_slot_str("nozzle_temperature", slot))
+        if flow_override is None:
+            flow_override = _first_float(self._comment_slot_str("filament_max_volumetric_speed", slot))
+        if close_fan_override is None:
+            close_fan_override = _first_float(self._comment_slot_str("close_fan_the_first_x_layers", slot))
+
+        mat_key = _normalize_material_key(raw_type, raw_preset)
+        base = MATERIAL_PROFILES[mat_key]
+        # Guard against unconfigured slot placeholder (e.g. 2 mm³/s on a >=0.4mm non-TPU print)
+        if flow_override is not None and flow_override <= 3.0 and self.nozzle_diam_mm >= 0.35 and mat_key != "TPU":
+            flow_override = None
+
+        default_close_fan = 3 if mat_key in ("PETG", "ABS", "ASA", "PA", "PC") else 1
+        close_fan_layers = (
+            max(0, int(round(close_fan_override))) if close_fan_override is not None else default_close_fan
+        )
+
+        physics = MaterialPhysics(
+            name=base.name,
+            t_nozzle=nozzle_override if (nozzle_override and nozzle_override >= 170.0) else base.t_nozzle,
+            t_amb=base.t_amb,
+            t_bond_min=base.t_bond_min,
+            t_ideal=base.t_ideal,
+            t_sag_tg=base.t_sag_tg,
+            max_flow_mm3s=flow_override if (flow_override and flow_override > 0.5) else base.max_flow_mm3s,
+            tau_base_s=base.tau_base_s,
+            hygroscopic=base.hygroscopic,
+            max_fan_pwm=base.max_fan_pwm,
+        )
+        resolved = ResolvedProfile(
+            physics=physics,
+            default_accel_mms2=self.default_accel_mms2,
+            nozzle_diam_mm=self.nozzle_diam_mm,
+            close_fan_first_layers=close_fan_layers,
+        )
+        self._cache[slot] = resolved
+        return resolved
+
+
 def _resolve_profile_from_settings(
     settings_dict: dict | None,
     gcode_sample: str,
     slice_nozzle_mm: float | None = None,
 ) -> ResolvedProfile:
-    raw_type = ""
-    raw_preset = ""
-    nozzle_override: float | None = None
-    flow_override: float | None = None
-    nozzle_diam: float = slice_nozzle_mm if (slice_nozzle_mm and 0.15 <= slice_nozzle_mm <= 1.2) else 0.4
-    accel = 6000.0
-
-    # Detect first active AMS filament slot (M620 S<slot> or T<slot>) so multi-slot
-    # projects don't inherit an unused Slot 1 TPU volumetric cap on a Slot 2 PLA print!
-    active_slot = 0
-    m_slot = re.search(r"(?:^|\n)\s*M620\s+S(\d+)", gcode_sample)
-    if m_slot:
-        cand = int(m_slot.group(1))
-        if 0 <= cand <= 15:
-            active_slot = cand
-
-    if isinstance(settings_dict, dict):
-        raw_type = _first_str(_slot_item(settings_dict.get("filament_type"), active_slot))
-        raw_preset = _first_str(_slot_item(settings_dict.get("filament_settings_id"), active_slot))
-        nozzle_override = _first_float(_slot_item(settings_dict.get("nozzle_temperature"), active_slot))
-        flow_override = _first_float(_slot_item(settings_dict.get("filament_max_volumetric_speed"), active_slot))
-        if slice_nozzle_mm is None:
-            nd = _first_float(_slot_item(settings_dict.get("nozzle_diameter"), 0))
-            if nd and 0.15 <= nd <= 1.2:
-                nozzle_diam = nd
-        parsed_accel = _first_float(settings_dict.get("default_acceleration"))
-        if parsed_accel and parsed_accel > 100.0:
-            accel = parsed_accel
-
-    for line in gcode_sample.splitlines():
-        if not line.startswith(";"):
-            continue
-        body = line[1:].strip()
-        if "=" not in body:
-            continue
-        k, v = [p.strip() for p in body.split("=", 1)]
-        kl = k.lower()
-        tokens = [tok.strip().strip('"') for tok in re.split(r"[;,]", v) if tok.strip()]
-        picked = tokens[active_slot] if 0 <= active_slot < len(tokens) else (tokens[0] if tokens else "")
-        if kl == "filament_type" and not raw_type:
-            raw_type = picked
-        elif kl == "filament_settings_id" and not raw_preset:
-            raw_preset = picked
-        elif kl == "nozzle_temperature" and nozzle_override is None:
-            nozzle_override = _first_float(picked)
-        elif kl == "filament_max_volumetric_speed" and flow_override is None:
-            flow_override = _first_float(picked)
-        elif kl == "nozzle_diameter" and slice_nozzle_mm is None:
-            nd = _first_float(picked)
-            if nd and 0.15 <= nd <= 1.2:
-                nozzle_diam = nd
-        elif kl == "default_acceleration":
-            pa = _first_float(picked)
-            if pa and pa > 100.0:
-                accel = pa
-
-    mat_key = _normalize_material_key(raw_type, raw_preset)
-    base = MATERIAL_PROFILES[mat_key]
-    # Guard against unconfigured slot placeholder (e.g. 2 mm³/s on a >=0.4mm non-TPU print)
-    if flow_override is not None and flow_override <= 3.0 and nozzle_diam >= 0.35 and mat_key != "TPU":
-        flow_override = None
-
-    physics = MaterialPhysics(
-        name=base.name,
-        t_nozzle=nozzle_override if (nozzle_override and nozzle_override >= 170.0) else base.t_nozzle,
-        t_amb=base.t_amb,
-        t_bond_min=base.t_bond_min,
-        t_ideal=base.t_ideal,
-        t_sag_tg=base.t_sag_tg,
-        max_flow_mm3s=flow_override if (flow_override and flow_override > 0.5) else base.max_flow_mm3s,
-        tau_base_s=base.tau_base_s,
-        hygroscopic=base.hygroscopic,
-        max_fan_pwm=base.max_fan_pwm,
-    )
-    return ResolvedProfile(physics=physics, default_accel_mms2=accel, nozzle_diam_mm=round(nozzle_diam, 2))
+    plate_profiles = _PlateProfiles(settings_dict, gcode_sample, slice_nozzle_mm=slice_nozzle_mm)
+    return plate_profiles.for_slot(plate_profiles.initial_slot)
 
 
 def _read_axis(cmd_part: str, axis: str) -> float | None:
@@ -399,7 +482,13 @@ def _extract_plate_from_path(
     return 1, file_path.read_text(encoding="utf-8", errors="ignore"), None, None, None
 
 
-def assess_gcode_text(
+@dataclass
+class _PlateAssessMeta:
+    plate_profiles: _PlateProfiles
+    protected_interface_layers: set[int]
+
+
+def _assess_gcode_internal(
     gcode_text: str,
     *,
     plate_id: int = 1,
@@ -409,14 +498,37 @@ def assess_gcode_text(
     slicer_prediction_s: int | None = None,
     printer_nozzle_mm: float | None = None,
     printer_name: str | None = None,
-) -> AssessResponse:
-    """Run single-pass kinematic, 32x32 bed-cell inter-layer thermal TQI, and risk analysis."""
+) -> tuple[AssessResponse, _PlateAssessMeta]:
+    """Run single-pass kinematic, per-slot 32x32 bed-cell thermal TQI, and risk analysis."""
     # Bambu Studio writes `; CONFIG_BLOCK_START` at the tail of `.gcode` as well as head
     config_sample = gcode_text[:16384] + "\n" + gcode_text[-16384:] if len(gcode_text) > 32768 else gcode_text
-    resolved = _resolve_profile_from_settings(settings_dict, config_sample, slice_nozzle_mm=slice_nozzle_mm)
-    prof = resolved.physics
-    accel = resolved.default_accel_mms2
-    plate_nozzle_mm = resolved.nozzle_diam_mm
+    plate_profiles = _PlateProfiles(settings_dict, config_sample, slice_nozzle_mm=slice_nozzle_mm)
+    initial_resolved = plate_profiles.for_slot(plate_profiles.initial_slot)
+    accel = plate_profiles.default_accel_mms2
+    plate_nozzle_mm = plate_profiles.nozzle_diam_mm
+
+    active_slot = plate_profiles.initial_slot
+    active_resolved = initial_resolved
+    active_prof = active_resolved.physics
+    active_mat_id = _MATERIAL_ID_BY_NAME[active_prof.name]
+    active_min_oh_fan = (
+        55.0 if active_prof.name in ("PLA", "PLA-SILK") else (25.0 if active_prof.name == "PETG" else 0.0)
+    )
+    active_min_oh_layer = max(2, active_resolved.close_fan_first_layers)
+
+    def _switch_slot(new_slot: int) -> None:
+        nonlocal active_slot, active_resolved, active_prof, active_mat_id
+        nonlocal active_min_oh_fan, active_min_oh_layer
+        if new_slot == active_slot:
+            return
+        active_slot = new_slot
+        active_resolved = plate_profiles.for_slot(new_slot)
+        active_prof = active_resolved.physics
+        active_mat_id = _MATERIAL_ID_BY_NAME[active_prof.name]
+        active_min_oh_fan = (
+            55.0 if active_prof.name in ("PLA", "PLA-SILK") else (25.0 if active_prof.name == "PETG" else 0.0)
+        )
+        active_min_oh_layer = max(2, active_resolved.close_fan_first_layers)
 
     has_start_end_marker = "; MACHINE_START_GCODE_END" in gcode_text
 
@@ -427,6 +539,8 @@ def assess_gcode_text(
     bed_span = 256.0
     prev_layer_cell_t = np.full((bed_grid, bed_grid), -1e9, dtype=np.float64)
     cur_layer_cell_t = np.full((bed_grid, bed_grid), -1e9, dtype=np.float64)
+    prev_layer_cell_mat = np.full((bed_grid, bed_grid), -1, dtype=np.int16)
+    cur_layer_cell_mat = np.full((bed_grid, bed_grid), -1, dtype=np.int16)
 
     in_print = not has_start_end_marker
     rel_e = True
@@ -446,6 +560,14 @@ def assess_gcode_text(
     l0_max_x = l0_max_y = float("-inf")
     saw_brim_or_skirt = False
 
+    extruded_slots_order: list[int] = []
+    extruded_slots_set: set[int] = set()
+    max_flow_seen = 0.0
+    max_flow_seen_limit = initial_resolved.physics.max_flow_mm3s
+    worst_flow_ratio = 0.0
+    worst_ratio_flow_mm3s = 0.0
+    worst_ratio_prof = initial_resolved.physics
+
     saw_explicit_layer = False
     layer_idx = 0
     layer_z = 0.2
@@ -453,24 +575,35 @@ def assess_gcode_text(
     layer_has_extrusion = False
     layer_start_t = 0.0
     layer_max_flow = 0.0
+    layer_max_flow_ratio = 0.0
     layer_ow_speed_weighted = 0.0
     layer_ow_dist = 0.0
+    layer_ow_dist_by_mat: dict[str, float] = {}
+    layer_mat_ext_time: dict[str, float] = {}
     layer_fan_sum = 0.0
     layer_ext_time = 0.0
     layer_cell_tqis: list[float] = []
+    layer_same_mat_tqis: list[float] = []
+    layer_part_mat_ids: set[int] = set()
+    prev_layer_part_mat_ids: set[int] = set()
+    layer_has_dissimilar_contact = False
     layer_overhang_low_fan = False
     layer_infill_time = 0.0
     upper_fast_moves = False
 
     layers_out: list[LayerThermalPoint] = []
+    layer_ow_primary_mats: list[str | None] = []
+    layer_dominant_mats: list[str] = []
+    protected_interface_layers: set[int] = set()
     fast_savings_s = 0.0
 
     def flush_layer() -> None:
         nonlocal layer_idx, prev_layer_z, layer_has_extrusion, layer_start_t
-        nonlocal layer_max_flow, layer_ow_speed_weighted, layer_ow_dist
-        nonlocal layer_fan_sum, layer_ext_time, layer_cell_tqis
-        nonlocal layer_overhang_low_fan, layer_infill_time, fast_savings_s
-        nonlocal prev_layer_cell_t, cur_layer_cell_t
+        nonlocal layer_max_flow, layer_max_flow_ratio, layer_ow_speed_weighted, layer_ow_dist
+        nonlocal layer_ow_dist_by_mat, layer_mat_ext_time, layer_fan_sum, layer_ext_time
+        nonlocal layer_cell_tqis, layer_same_mat_tqis, layer_part_mat_ids, prev_layer_part_mat_ids
+        nonlocal layer_has_dissimilar_contact, layer_overhang_low_fan, layer_infill_time, fast_savings_s
+        nonlocal prev_layer_cell_t, cur_layer_cell_t, prev_layer_cell_mat, cur_layer_cell_mat
 
         if not layer_has_extrusion:
             layer_start_t = t_now
@@ -488,18 +621,40 @@ def assess_gcode_text(
             p20_neg = float(np.percentile(arr, 20))
             layer_tqi = p80_pos if abs(p80_pos) >= abs(p20_neg) else p20_neg
 
+        has_layer_mat_shift = bool(prev_layer_part_mat_ids and layer_part_mat_ids != prev_layer_part_mat_ids)
+        is_interface_or_mixed = layer_has_dissimilar_contact or len(layer_part_mat_ids) > 1 or has_layer_mat_shift
+        if is_interface_or_mixed:
+            protected_interface_layers.add(layer_idx)
+
+        is_disjoint_mat_stack = bool(
+            prev_layer_part_mat_ids and layer_part_mat_ids and prev_layer_part_mat_ids.isdisjoint(layer_part_mat_ids)
+        )
+        is_pure_dissimilar_interface = (
+            layer_has_dissimilar_contact and not layer_same_mat_tqis
+        ) or is_disjoint_mat_stack
+        if is_disjoint_mat_stack and layer_tqi < 0.0:
+            layer_tqi = 0.0
+
         flags: list[str] = []
-        if layer_tqi > 45.0 or layer_overhang_low_fan:
+        if layer_tqi > 45.0:
             flags.append("overheating_curl")
-        if layer_idx > 2 and layer_tqi < -50.0:
+        if layer_overhang_low_fan:
+            flags.append("low_overhang_fan")
+        if layer_idx > 2 and layer_tqi < -50.0 and not is_pure_dissimilar_interface:
             flags.append("cold_delamination")
-        if layer_max_flow > 0.92 * prof.max_flow_mm3s:
+        if layer_max_flow_ratio > 0.92:
             flags.append("volumetric_flow_ceiling")
 
         ow_speed = (layer_ow_speed_weighted / layer_ow_dist) if layer_ow_dist > 0.5 else None
+        ow_mat = (
+            max(layer_ow_dist_by_mat.items(), key=lambda kv: kv[1])[0]
+            if ow_speed is not None and layer_ow_dist_by_mat
+            else None
+        )
+        dom_mat = max(layer_mat_ext_time.items(), key=lambda kv: kv[1])[0] if layer_mat_ext_time else active_prof.name
 
-        # Estimate safe time savings on cool/safe layers where infill/inner walls can accelerate
-        if layer_tqi < 10.0 and layer_max_flow < 0.82 * prof.max_flow_mm3s:
+        # Estimate safe time savings on cool/safe non-interface layers where infill/inner walls can accelerate
+        if layer_tqi < 10.0 and layer_max_flow_ratio < 0.82 and not is_interface_or_mixed:
             fast_savings_s += layer_infill_time * 0.22
 
         layers_out.append(
@@ -514,21 +669,33 @@ def assess_gcode_text(
                 risk_flags=flags,
             )
         )
+        layer_ow_primary_mats.append(ow_mat)
+        layer_dominant_mats.append(dom_mat)
 
-        # Promote current layer's cell first-visit timestamps for the next Z layer
+        # Promote current layer's cell first-visit timestamps & materials for the next Z layer
         prev_layer_cell_t[:] = cur_layer_cell_t
         cur_layer_cell_t.fill(-1e9)
+        prev_layer_cell_mat[:] = cur_layer_cell_mat
+        cur_layer_cell_mat.fill(-1)
+        if layer_part_mat_ids:
+            prev_layer_part_mat_ids = set(layer_part_mat_ids)
 
         prev_layer_z = layer_z
         layer_idx += 1
         layer_has_extrusion = False
         layer_start_t = t_now
         layer_max_flow = 0.0
+        layer_max_flow_ratio = 0.0
         layer_ow_speed_weighted = 0.0
         layer_ow_dist = 0.0
+        layer_ow_dist_by_mat = {}
+        layer_mat_ext_time = {}
         layer_fan_sum = 0.0
         layer_ext_time = 0.0
         layer_cell_tqis = []
+        layer_same_mat_tqis = []
+        layer_part_mat_ids = set()
+        layer_has_dissimilar_contact = False
         layer_overhang_low_fan = False
         layer_infill_time = 0.0
 
@@ -574,7 +741,7 @@ def assess_gcode_text(
                         layer_z = pz
             continue
 
-        if c_first not in ("G", "M", "g", "m"):
+        if c_first not in ("G", "M", "T", "g", "m", "t"):
             continue
 
         cmd_part = s.split(";", 1)[0].strip() if ";" in s else s.strip()
@@ -584,7 +751,10 @@ def assess_gcode_text(
         op = (cmd_part[:sp] if sp > 0 else cmd_part).upper()
 
         if op not in ("G0", "G1", "G2", "G3"):
-            if op == "M83":
+            switched = _parse_tool_slot_switch(op, cmd_part)
+            if switched is not None:
+                _switch_slot(switched)
+            elif op == "M83":
                 rel_e = True
             elif op == "M82":
                 rel_e = False
@@ -639,6 +809,15 @@ def assess_gcode_text(
                     layer_z = tz if tz > 0 else layer_z
                 layer_has_extrusion = True
 
+                if active_slot not in extruded_slots_set:
+                    extruded_slots_set.add(active_slot)
+                    extruded_slots_order.append(active_slot)
+
+                is_wipe_tower = "prime tower" in cur_feature or "wipe tower" in cur_feature
+                if not is_wipe_tower:
+                    layer_part_mat_ids.add(active_mat_id)
+                    layer_mat_ext_time[active_prof.name] = layer_mat_ext_time.get(active_prof.name, 0.0) + dt
+
                 lo_x = tx if tx <= mx else mx
                 hi_x = tx if tx >= mx else mx
                 lo_y = ty if ty <= my else my
@@ -661,8 +840,18 @@ def assess_gcode_text(
 
                 layer_h = max(0.06, min(0.60, layer_z - prev_layer_z if layer_z > prev_layer_z else 0.20))
                 flow = (de * FILAMENT_AREA_MM2) / max(dt, 1e-4)
+                flow_ratio = flow / max(active_prof.max_flow_mm3s, 0.1)
                 if flow > layer_max_flow:
                     layer_max_flow = flow
+                if flow_ratio > layer_max_flow_ratio:
+                    layer_max_flow_ratio = flow_ratio
+                if flow > max_flow_seen:
+                    max_flow_seen = flow
+                    max_flow_seen_limit = active_prof.max_flow_mm3s
+                if flow_ratio > worst_flow_ratio:
+                    worst_flow_ratio = flow_ratio
+                    worst_ratio_flow_mm3s = flow
+                    worst_ratio_prof = active_prof
 
                 eff_pwm = min(255.0, fan_pwm + 0.35 * aux_fan_pwm)
                 fan_pct_now = (eff_pwm / 255.0) * 100.0
@@ -672,14 +861,17 @@ def assess_gcode_text(
                 if "outer wall" in cur_feature or cur_feature == "external perimeter":
                     layer_ow_speed_weighted += speed_mms * dist
                     layer_ow_dist += dist
-                elif "infill" in cur_feature or "inner wall" in cur_feature or cur_feature == "perimeter":
+                    layer_ow_dist_by_mat[active_prof.name] = layer_ow_dist_by_mat.get(active_prof.name, 0.0) + dist
+                elif not is_wipe_tower and (
+                    "infill" in cur_feature or "inner wall" in cur_feature or cur_feature == "perimeter"
+                ):
                     layer_infill_time += dt
 
-                is_ext_overhang = "overhang wall" in cur_feature or cur_feature in ("overhang", "bridge")
-                if is_ext_overhang and layer_idx >= 2:
-                    min_oh_fan = 55.0 if prof.name in ("PLA", "PLA-SILK") else (25.0 if prof.name == "PETG" else 0.0)
-                    if min_oh_fan > 0.0 and fan_pct_now < min_oh_fan:
-                        layer_overhang_low_fan = True
+                if not is_wipe_tower:
+                    is_ext_overhang = "overhang wall" in cur_feature or cur_feature in ("overhang", "bridge")
+                    if is_ext_overhang and layer_idx >= active_min_oh_layer:
+                        if active_min_oh_fan > 0.0 and fan_pct_now < active_min_oh_fan:
+                            layer_overhang_low_fan = True
 
                 if tz > 40.0 and speed_mms > 200.0:
                     upper_fast_moves = True
@@ -687,26 +879,39 @@ def assess_gcode_text(
                 # Evaluate inter-layer cooling once per 8mm cell per layer against prev_layer_cell_t
                 # Recording only the FIRST touch per cell per layer prevents late-layer infill from
                 # overwriting early-layer perimeter timestamps inside the same 8mm cell.
-                cx = max(0, min(bed_grid - 1, int((mx / bed_span) * (bed_grid - 1))))
-                cy = max(0, min(bed_grid - 1, int((my / bed_span) * (bed_grid - 1))))
-                if cur_layer_cell_t[cx, cy] < -1e8:
-                    if layer_idx > 0:
-                        last_visit = float(prev_layer_cell_t[cx, cy])
-                        if last_visit > -1e8:
-                            dt_rev = max(0.05, min(300.0, t_now - last_visit))
-                            tau = (
-                                prof.tau_base_s
-                                * ((line_width * layer_h) / (0.42 * 0.20))
-                                * (1.0 / (0.30 + 0.70 * (fan_pct_now / 100.0)))
-                            )
-                            t_eff_amb = (
-                                prof.t_amb - 12.0 * max(0.0, (fan_pct_now - 50.0) / 50.0)
-                                if prof.t_amb >= 40.0
-                                else prof.t_amb
-                            )
-                            t_sub = t_eff_amb + (prof.t_nozzle - t_eff_amb) * math.exp(-dt_rev / max(tau, 0.20))
-                            layer_cell_tqis.append(_compute_tqi(t_sub, prof))
-                    cur_layer_cell_t[cx, cy] = t_now + dt
+                if not is_wipe_tower:
+                    cx = max(0, min(bed_grid - 1, int((mx / bed_span) * (bed_grid - 1))))
+                    cy = max(0, min(bed_grid - 1, int((my / bed_span) * (bed_grid - 1))))
+                    if cur_layer_cell_t[cx, cy] < -1e8:
+                        if layer_idx > 0:
+                            last_visit = float(prev_layer_cell_t[cx, cy])
+                            if last_visit > -1e8:
+                                prev_mat = int(prev_layer_cell_mat[cx, cy])
+                                is_dissimilar_cell = prev_mat >= 0 and prev_mat != active_mat_id
+                                if is_dissimilar_cell:
+                                    layer_has_dissimilar_contact = True
+                                dt_rev = max(0.05, min(300.0, t_now - last_visit))
+                                tau = (
+                                    active_prof.tau_base_s
+                                    * ((line_width * layer_h) / (0.42 * 0.20))
+                                    * (1.0 / (0.30 + 0.70 * (fan_pct_now / 100.0)))
+                                )
+                                t_eff_amb = (
+                                    active_prof.t_amb - 12.0 * max(0.0, (fan_pct_now - 50.0) / 50.0)
+                                    if active_prof.t_amb >= 40.0
+                                    else active_prof.t_amb
+                                )
+                                t_sub = t_eff_amb + (active_prof.t_nozzle - t_eff_amb) * math.exp(
+                                    -dt_rev / max(tau, 0.20)
+                                )
+                                cell_tqi = _compute_tqi(t_sub, active_prof)
+                                if is_dissimilar_cell:
+                                    layer_cell_tqis.append(max(0.0, cell_tqi))
+                                else:
+                                    layer_cell_tqis.append(cell_tqi)
+                                    layer_same_mat_tqis.append(cell_tqi)
+                        cur_layer_cell_t[cx, cy] = t_now + dt
+                        cur_layer_cell_mat[cx, cy] = active_mat_id
             elif tz > 40.0 and speed_mms > 200.0 and dist > 5.0:
                 upper_fast_moves = True
 
@@ -717,6 +922,10 @@ def assess_gcode_text(
     if in_print and layer_has_extrusion:
         flush_layer()
 
+    used_slots = extruded_slots_order if extruded_slots_order else [plate_profiles.initial_slot]
+    used_mat_names = list(dict.fromkeys(plate_profiles.for_slot(s).physics.name for s in used_slots))
+    plate_material_label = " + ".join(used_mat_names) if used_mat_names else initial_resolved.physics.name
+
     span_x = max(max_x - min_x, 1.0) if math.isfinite(min_x) else 256.0
     span_y = max(max_y - min_y, 1.0) if math.isfinite(min_y) else 256.0
 
@@ -724,16 +933,18 @@ def assess_gcode_text(
     tqi_vals = [lp.tqi for lp in layers_out]
     tqi_mean = round(float(np.mean(tqi_vals)), 1) if tqi_vals else 0.0
     hot_layers = [lp for lp in layers_out if "overheating_curl" in lp.risk_flags]
+    low_fan_layers = [lp for lp in layers_out if "low_overhang_fan" in lp.risk_flags]
     cold_layers = [lp for lp in layers_out if "cold_delamination" in lp.risk_flags]
     flow_layers = [lp for lp in layers_out if "volumetric_flow_ceiling" in lp.risk_flags]
-    max_flow_seen = max((lp.max_flow_mm3s for lp in layers_out), default=0.0)
 
-    # Outer-wall gloss banding check (ignore initial bottom-shell ramp and minor slowdowns)
+    # Outer-wall gloss banding check (compare adjacent layers of the SAME outer-wall material only)
     gloss_jump_layers: list[int] = []
     prev_ow: float | None = None
-    for lp in layers_out:
+    prev_ow_mat: str | None = None
+    for idx_lp, lp in enumerate(layers_out):
+        cur_ow_mat = layer_ow_primary_mats[idx_lp]
         if lp.outer_wall_speed_mms is not None and lp.layer >= 4:
-            if prev_ow is not None:
+            if prev_ow is not None and prev_ow_mat == cur_ow_mat:
                 hi = max(prev_ow, lp.outer_wall_speed_mms)
                 lo = max(min(prev_ow, lp.outer_wall_speed_mms), 1.0)
                 if (hi / lo) > 1.45 and (hi - lo) >= 30.0:
@@ -741,6 +952,7 @@ def assess_gcode_text(
                     if "outer_wall_gloss_banding" not in lp.risk_flags:
                         lp.risk_flags.append("outer_wall_gloss_banding")
             prev_ow = lp.outer_wall_speed_mms
+            prev_ow_mat = cur_ow_mat
 
     # Slenderness / bed detachment check
     l0_span_x = (l0_max_x - l0_min_x) if math.isfinite(l0_min_x) else span_x
@@ -760,7 +972,7 @@ def assess_gcode_text(
                 severity=sev,
                 title=f"Overheating / curling risk on {len(hot_layers)} layer(s)",
                 detail=(
-                    f"Local plastic stays above softening threshold (peak TQI +{worst_tqi:.0f}) "
+                    f"Local plastic stays above softening threshold (peak TQI {_format_signed_tqi(worst_tqi)}) "
                     f"between layers {hot_layers[0].layer + 1}–{hot_layers[-1].layer + 1}, risking sag or curled overhangs."
                 ),
                 layer_start=hot_layers[0].layer,
@@ -771,8 +983,33 @@ def assess_gcode_text(
         recs["slow_down_layer_time"] = 8
         recs["overhang_fan_speed"] = "100%"
 
+    if low_fan_layers:
+        min_fan_seen = min(lp.fan_pct for lp in low_fan_layers)
+        findings.append(
+            AdvisorFinding(
+                code="low_overhang_fan",
+                severity="warning",
+                title=f"Insufficient overhang / bridge cooling on {len(low_fan_layers)} layer(s)",
+                detail=(
+                    f"Overhang wall or bridge segments run with low part-cooling fan (min {min_fan_seen}% fan) "
+                    f"between layers {low_fan_layers[0].layer + 1}–{low_fan_layers[-1].layer + 1}, "
+                    "risking drooping bridges or curled overhang edges."
+                ),
+                layer_start=low_fan_layers[0].layer,
+                layer_end=low_fan_layers[-1].layer,
+                slicer_fix="Enable 'Force cooling for overhangs and bridges' and raise overhang_fan_speed.",
+            )
+        )
+        recs["overhang_fan_speed"] = "100%"
+
     if cold_layers:
-        worst_cold = min(lp.tqi for lp in cold_layers)
+        worst_cold_lp = min(cold_layers, key=lambda lp: lp.tqi)
+        worst_cold = worst_cold_lp.tqi
+        cold_mat_name = (
+            layer_dominant_mats[worst_cold_lp.layer]
+            if 0 <= worst_cold_lp.layer < len(layer_dominant_mats)
+            else initial_resolved.physics.name
+        )
         findings.append(
             AdvisorFinding(
                 code="cold_delamination",
@@ -780,32 +1017,35 @@ def assess_gcode_text(
                 title=f"Overcooling / weak layer bond on {len(cold_layers)} layer(s)",
                 detail=(
                     f"Long layer revisit times cool the substrate below optimal bonding window "
-                    f"(min TQI {worst_cold:.0f}), reducing Z-axis tensile strength."
+                    f"(min TQI {_format_signed_tqi(worst_cold)}), reducing Z-axis tensile strength."
                 ),
                 layer_start=cold_layers[0].layer,
                 layer_end=cold_layers[-1].layer,
                 slicer_fix="Lower max part-cooling fan speed by 15–25% or run Enhance (Strong / Balanced).",
             )
         )
-        recs["fan_max_speed"] = "60%" if prof.name == "PETG" else "80%"
+        recs["fan_max_speed"] = "60%" if cold_mat_name == "PETG" else "80%"
 
     if flow_layers:
-        sev = "critical" if max_flow_seen > 1.05 * prof.max_flow_mm3s else "warning"
+        sev = "critical" if worst_flow_ratio > 1.05 else "warning"
         findings.append(
             AdvisorFinding(
                 code="volumetric_flow_ceiling",
                 severity=sev,
-                title=f"Hotend volumetric flow near/above limit ({max_flow_seen:.1f} / {prof.max_flow_mm3s:.1f} mm³/s)",
+                title=(
+                    f"Hotend volumetric flow near/above limit "
+                    f"({worst_ratio_flow_mm3s:.1f} / {worst_ratio_prof.max_flow_mm3s:.1f} mm³/s)"
+                ),
                 detail=(
-                    f"{len(flow_layers)} layer(s) push extrusion beyond 92% of {prof.name}'s melt ceiling, "
+                    f"{len(flow_layers)} layer(s) push extrusion beyond 92% of {worst_ratio_prof.name}'s melt ceiling, "
                     "risking extruder skipping, matte under-extrusion, or weak infill."
                 ),
                 layer_start=flow_layers[0].layer,
                 layer_end=flow_layers[-1].layer,
-                slicer_fix=f"Cap filament_max_volumetric_speed at {round(prof.max_flow_mm3s * 0.88, 1)} mm³/s.",
+                slicer_fix=f"Cap filament_max_volumetric_speed at {round(worst_ratio_prof.max_flow_mm3s * 0.88, 1)} mm³/s.",
             )
         )
-        recs["filament_max_volumetric_speed"] = round(prof.max_flow_mm3s * 0.88, 1)
+        recs["filament_max_volumetric_speed"] = round(worst_ratio_prof.max_flow_mm3s * 0.88, 1)
 
     if slenderness_ratio > 6.0 and not saw_brim_or_skirt and (upper_fast_moves or max_z > 60.0):
         top_start = max(0, int(total_layers * 0.6))
@@ -830,7 +1070,8 @@ def assess_gcode_text(
         recs["brim_width"] = 6
 
     if len(gloss_jump_layers) >= 5:
-        sev = "warning" if prof.name in ("PLA-SILK", "PETG") else "info"
+        has_gloss_sensitive = any(m in ("PLA-SILK", "PETG") for m in used_mat_names)
+        sev = "warning" if has_gloss_sensitive else "info"
         findings.append(
             AdvisorFinding(
                 code="outer_wall_gloss_banding",
@@ -868,14 +1109,22 @@ def assess_gcode_text(
         )
         recs["nozzle_diameter"] = round(printer_nozzle_mm, 2)
 
-    if ams_humidity_pct is not None and ams_humidity_pct > 35.0 and prof.hygroscopic:
+    hygro_names = list(
+        dict.fromkeys(
+            plate_profiles.for_slot(s).physics.name
+            for s in used_slots
+            if plate_profiles.for_slot(s).physics.hygroscopic
+        )
+    )
+    if ams_humidity_pct is not None and ams_humidity_pct > 35.0 and hygro_names:
+        hygro_label = " / ".join(hygro_names)
         findings.append(
             AdvisorFinding(
                 code="hygroscopic_moisture",
                 severity="warning",
-                title=f"Elevated AMS humidity ({ams_humidity_pct:.0f}%) for hygroscopic {prof.name}",
+                title=f"Elevated AMS humidity ({ams_humidity_pct:.0f}%) for hygroscopic {hygro_label}",
                 detail=(
-                    f"{prof.name} absorbs moisture rapidly above 35% RH, causing stringing, "
+                    f"{hygro_label} absorbs moisture rapidly above 35% RH, causing stringing, "
                     "popping steam bubbles, and weaker layer adhesion."
                 ),
                 slicer_fix="Run AMS filament drying before starting this print.",
@@ -913,9 +1162,12 @@ def assess_gcode_text(
         scaled_fast = fast_savings_s
     est_savings_s = min(int(est_time_s * 0.35), max(0, int(round(scaled_fast))))
 
-    return AssessResponse(
+    reported_flow = worst_ratio_flow_mm3s if flow_layers else max_flow_seen
+    reported_limit = worst_ratio_prof.max_flow_mm3s if flow_layers else max_flow_seen_limit
+
+    response = AssessResponse(
         plate_id=plate_id,
-        material=prof.name,
+        material=plate_material_label,
         nozzle_diameter_mm=plate_nozzle_mm,
         health_score=health_score,
         tqi_mean=tqi_mean,
@@ -923,12 +1175,42 @@ def assess_gcode_text(
         tqi_cold_layers=len(cold_layers),
         estimated_time_s=est_time_s,
         estimated_fast_savings_s=est_savings_s,
-        max_volumetric_flow_mm3s=round(max_flow_seen, 2),
-        flow_limit_mm3s=round(prof.max_flow_mm3s, 2),
+        max_volumetric_flow_mm3s=round(reported_flow, 2),
+        flow_limit_mm3s=round(reported_limit, 2),
         findings=findings,
         layers=layers_out,
         slicer_recommendations=recs,
     )
+    meta = _PlateAssessMeta(
+        plate_profiles=plate_profiles,
+        protected_interface_layers=protected_interface_layers,
+    )
+    return response, meta
+
+
+def assess_gcode_text(
+    gcode_text: str,
+    *,
+    plate_id: int = 1,
+    settings_dict: dict | None = None,
+    ams_humidity_pct: float | None = None,
+    slice_nozzle_mm: float | None = None,
+    slicer_prediction_s: int | None = None,
+    printer_nozzle_mm: float | None = None,
+    printer_name: str | None = None,
+) -> AssessResponse:
+    """Run single-pass kinematic, 32x32 bed-cell inter-layer thermal TQI, and risk analysis."""
+    response, _ = _assess_gcode_internal(
+        gcode_text,
+        plate_id=plate_id,
+        settings_dict=settings_dict,
+        ams_humidity_pct=ams_humidity_pct,
+        slice_nozzle_mm=slice_nozzle_mm,
+        slicer_prediction_s=slicer_prediction_s,
+        printer_nozzle_mm=printer_nozzle_mm,
+        printer_name=printer_name,
+    )
+    return response
 
 
 def assess_3mf_plate(
@@ -1013,7 +1295,7 @@ def enhance_3mf_plate(
         raise ValueError("Enhance requires a sliced .gcode.3mf package")
 
     slicer_pred_s, slice_nozzle_mm = _parse_plate_slice_info(slice_info_xml, resolved_plate)
-    kin_before = assess_gcode_text(
+    kin_before, before_meta = _assess_gcode_internal(
         gcode_text,
         plate_id=resolved_plate,
         settings_dict=settings_dict,
@@ -1022,10 +1304,8 @@ def enhance_3mf_plate(
         printer_nozzle_mm=printer_nozzle_mm,
         printer_name=printer_name,
     )
-    config_sample = gcode_text[:16384] + "\n" + gcode_text[-16384:] if len(gcode_text) > 32768 else gcode_text
-    resolved = _resolve_profile_from_settings(settings_dict, config_sample, slice_nozzle_mm=slice_nozzle_mm)
-    prof = resolved.physics
-    accel = resolved.default_accel_mms2
+    plate_profiles = before_meta.plate_profiles
+    protected_interface_layers = before_meta.protected_interface_layers
 
     layer_map = {lp.layer: lp for lp in kin_before.layers}
     has_slenderness_risk = any(f.code == "slenderness_detachment" for f in kin_before.findings)
@@ -1043,7 +1323,10 @@ def enhance_3mf_plate(
         "strong": 0.80,
         "gloss": 0.86,
     }[priority]
-    flow_cap_mm3s = prof.max_flow_mm3s * flow_cap_ratio
+
+    active_slot = plate_profiles.initial_slot
+    active_prof = plate_profiles.for_slot(active_slot).physics
+    active_flow_cap_mm3s = active_prof.max_flow_mm3s * flow_cap_ratio
 
     has_start_marker = "; MACHINE_START_GCODE_END" in gcode_text
     in_print = not has_start_marker
@@ -1083,13 +1366,13 @@ def enhance_3mf_plate(
                     cur_layer_idx += 1
                     layer_has_extrusion = False
                 saw_explicit_layer = True
-                if in_print and cur_layer_idx >= 1:
+                if in_print and cur_layer_idx >= 1 and cur_layer_idx not in protected_interface_layers:
                     lp = layer_map.get(cur_layer_idx)
                     if lp is not None:
                         if lp.tqi > 35.0:
-                            out_lines.append(f"M106 P1 S{prof.max_fan_pwm} ; PrintAdvisor cool hot layer")
+                            out_lines.append(f"M106 P1 S{active_prof.max_fan_pwm} ; PrintAdvisor cool hot layer")
                             cooled_layers.add(cur_layer_idx)
-                        elif priority == "strong" and lp.tqi < -35.0:
+                        elif priority == "strong" and lp.tqi < -35.0 and active_prof.name not in ("PLA", "PLA-SILK"):
                             out_lines.append("M106 P1 S76 ; PrintAdvisor preserve interlayer bond")
                             warmed_layers.add(cur_layer_idx)
             elif ":" in body:
@@ -1118,6 +1401,14 @@ def enhance_3mf_plate(
         parts = cmd_clean.split()
         op = parts[0].upper()
 
+        switched = _parse_tool_slot_switch(op, cmd_clean)
+        if switched is not None:
+            active_slot = switched
+            active_prof = plate_profiles.for_slot(active_slot).physics
+            active_flow_cap_mm3s = active_prof.max_flow_mm3s * flow_cap_ratio
+            out_lines.append(raw)
+            continue
+
         if op == "M83":
             rel_e = True
             out_lines.append(raw)
@@ -1134,7 +1425,13 @@ def enhance_3mf_plate(
             continue
 
         if op not in ("G0", "G1", "G2", "G3"):
-            if op == "M106" and in_print and priority in ("strong", "balanced"):
+            if (
+                op == "M106"
+                and in_print
+                and priority in ("strong", "balanced")
+                and cur_layer_idx not in protected_interface_layers
+                and active_prof.name not in ("PLA", "PLA-SILK")
+            ):
                 lp_cur = layer_map.get(cur_layer_idx)
                 if lp_cur is not None and lp_cur.tqi < -50.0:
                     p_idx = _read_axis(cmd_clean, "P")
@@ -1206,10 +1503,17 @@ def enhance_3mf_plate(
         is_outer_wall = "outer wall" in cur_feature or cur_feature == "external perimeter"
         is_inner_wall = "inner wall" in cur_feature or cur_feature == "perimeter"
         is_infill = "infill" in cur_feature
+        is_interface_protected = (
+            cur_layer_idx in protected_interface_layers
+            or "support" in cur_feature
+            or "interface" in cur_feature
+            or "prime tower" in cur_feature
+            or "wipe tower" in cur_feature
+        )
 
         target_speed_mms = orig_speed_mms
 
-        if cur_layer_idx >= 1:
+        if cur_layer_idx >= 1 and not is_interface_protected:
             if priority == "gloss" and is_outer_wall:
                 target_speed_mms = gloss_target_mms
             elif layer_tqi > 35.0:
@@ -1236,10 +1540,10 @@ def enhance_3mf_plate(
                     target_speed_mms = min(300.0, orig_speed_mms * k_fast)
                     sped_up_layers.add(cur_layer_idx)
 
-        # Enforce volumetric flow cap strictly on every extruding segment
+        # Enforce active filament slot's volumetric flow cap on every extruding segment
         if dist > 1e-5 and de > 0.0:
             # Q = (de * A_f) / (dist / v) => v_max = (Q_cap * dist) / (de * A_f)
-            v_flow_cap = (flow_cap_mm3s * dist) / (de * FILAMENT_AREA_MM2)
+            v_flow_cap = (active_flow_cap_mm3s * dist) / (de * FILAMENT_AREA_MM2)
             if target_speed_mms > v_flow_cap:
                 target_speed_mms = max(15.0, v_flow_cap)
 
@@ -1278,11 +1582,20 @@ def enhance_3mf_plate(
     if slicer_pred_s is not None and slicer_pred_s > 0:
         anchored_before_s = slicer_pred_s
         anchored_after_s = max(1, int(round(slicer_pred_s * time_ratio)))
-        scaled_after_savings = max(0, int(round(kin_after.estimated_fast_savings_s * (slicer_pred_s / max(kin_before.estimated_time_s, 1)))))
+        scaled_after_savings = max(
+            0, int(round(kin_after.estimated_fast_savings_s * (slicer_pred_s / max(kin_before.estimated_time_s, 1))))
+        )
         before = kin_before.model_copy(
             update={
                 "estimated_time_s": anchored_before_s,
-                "estimated_fast_savings_s": max(0, int(round(kin_before.estimated_fast_savings_s * (slicer_pred_s / max(kin_before.estimated_time_s, 1))))),
+                "estimated_fast_savings_s": max(
+                    0,
+                    int(
+                        round(
+                            kin_before.estimated_fast_savings_s * (slicer_pred_s / max(kin_before.estimated_time_s, 1))
+                        )
+                    ),
+                ),
             }
         )
         after = kin_after.model_copy(
